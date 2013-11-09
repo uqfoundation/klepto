@@ -225,18 +225,20 @@ class file_archive(dict):
 #XXX: should inherit from object not dict ?
 class db_archive(dict): #XXX: requires UTF-8 key
     """dictionary-style interface to a database"""
-    def __init__(self, database=None, table=None):
+    def __init__(self, database=None, table=None, dbtype=None):
         """initialize a database with a synchronized dictionary interface
 
     Inputs:
         database: url of the database backend [default: :memory:]
         table: name of the associated database table
+        dbtype: PEP249-compliant database module [default: sqlite3]
         """
+        if dbtype is None: import sqlite3 as db
+        else: db = dbtype
         if database is None: database = ':memory:'
         self._database = database
         if table is None: table = 'memo'
         self._table = table
-        import sqlite3 as db
         self._conn = db.connect(database)
         self._curs = self._conn.cursor()
         sql = "create table if not exists %s(argstr, fval)" % table
