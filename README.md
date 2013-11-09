@@ -61,9 +61,9 @@ Klepto also includes a few useful decorators providing::
 Current Release
 ---------------
 The latest released version of klepto is available from::
-    http://trac.mystic.cacr.caltech.edu/project/pathos
+    http://dev.danse.us/trac/pathos
 
-Klepto is distributed under a modified BSD license.
+Klepto is distributed under a 3-clause BSD license.
 
 Development Release
 -------------------
@@ -80,7 +80,7 @@ acknowledge use of klepto by citing the following in your publication::
 
     Michael McKerns and Michael Aivazis,
     "pathos: a framework for heterogeneous computing", 2010- ;
-    http://trac.mystic.cacr.caltech.edu/project/pathos
+    http://dev.danse.us/trac/pathos
 
 More Information
 ----------------

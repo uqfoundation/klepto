@@ -5,16 +5,20 @@
 """
 a selection of caching decorators
 """
+from __future__ import absolute_import
 
 try:
     from collections import namedtuple
 except ImportError:
-    from _namedtuple import namedtuple
+    from ._namedtuple import namedtuple
 from collections import deque
 from random import choice #XXX: biased?
 from heapq import nsmallest
 from operator import itemgetter
-from itertools import ifilterfalse
+try:
+    from itertools import filterfalse
+except ImportError:
+    from itertools import ifilterfalse as filterfalse
 from functools import update_wrapper
 from threading import RLock
 from klepto.rounding import deep_round, simple_round
@@ -344,7 +348,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                         use_count.clear()
                     else: # purge least frequent cache entries
                         for k, _ in nsmallest(max(2, maxsize // 10),
-                                              use_count.iteritems(),
+                                              iter(use_count.items()),
                                               key=itemgetter(1)):
                             del cache[k], use_count[k]
             return result
@@ -501,7 +505,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
             if _len(queue) > maxqueue:
                 refcount.clear()
                 queue_appendleft(sentinel)
-                for key in ifilterfalse(refcount.__contains__,
+                for key in filterfalse(refcount.__contains__,
                                         iter(queue_pop, sentinel)):
                     queue_appendleft(key)
                     refcount[key] = 1
@@ -763,7 +767,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                         cache.dump()
                         cache.clear() 
                     else: # purge random cache entry
-                        del cache[choice(cache.keys())]
+                        del cache[choice(list(cache.keys()))]
             return result
 
         def archive(obj):

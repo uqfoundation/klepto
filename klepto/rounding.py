@@ -7,6 +7,10 @@ __all__ = ['deep_round', 'shallow_round', 'simple_round']
 
 from klepto.tools import isiterable
 #FIXME: these seem *slow*... and a bit convoluted.  Maybe rewrite as classes?
+import sys
+PYTHON3 = (hex(sys.hexversion) >= '0x30000f0')
+if PYTHON3:
+  unicode = str
 
 def deep_round_factory(tol):
   """helper function for deep_round (a factory for deep_round functions)"""
@@ -122,7 +126,13 @@ def simple_round(tol=0): #NOTE: only rounds floats, nothing else
 
 def shallow_round_factory(tol):
   """helper function for shallow_round (a factory for shallow_round functions)"""
-  from numpy import round as around #XXX: try or numpy makes this slow
+  try:
+    from numpy import round as around
+  except ImportError:
+    def around(iterable, tol):
+      if not isiterable(iterable): return round(iterable, tol)
+      itype = type(iterable)
+      return itype( round(i, tol) for i in iterable )
   def shallow_round(*args, **kwds):
     argstype = type(args) 
     _args = list(args)

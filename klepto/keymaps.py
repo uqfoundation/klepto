@@ -73,7 +73,7 @@ class keymap(object):
         """use a non-flat scheme for generating a key"""
         key = (args, kwds) #XXX: pickles larger, but is simpler to unpack
         if self.typed:
-            sorted_items = self._sorted(kwds.items())
+            sorted_items = self._sorted(list(kwds.items()))
             key += (self._tuple(self._type(v) for v in args), \
                     self._tuple(self._type(v) for (k,v) in sorted_items))
         return key
@@ -82,7 +82,7 @@ class keymap(object):
         """use a flattened scheme for generating a key"""
         key = args
         if kwds:
-            sorted_items = self._sorted(kwds.items())
+            sorted_items = self._sorted(list(kwds.items()))
             if self._mark: key += self._mark
             for item in sorted_items:
                 key += item
@@ -98,11 +98,11 @@ class keymap(object):
 
     def decrypt(self, key):
         """recover the stored value directly from a generated (non-flat) key"""
-        raise NotImplementedError, "Key decryption is not implemented"
+        raise NotImplementedError("Key decryption is not implemented")
 
     def decode(self, key):
         """recover the stored value directly from a generated (flattened) key"""
-        raise NotImplementedError, "Key decoding is not implemented"
+        raise NotImplementedError("Key decoding is not implemented")
 
     def dumps(self, obj):
         """a more pickle-like interface for encoding a key"""

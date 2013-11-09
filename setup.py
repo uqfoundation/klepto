@@ -3,7 +3,7 @@
 # Michael McKerns
 # mmckerns@caltech.edu
 
-from __future__ import with_statement
+from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
@@ -23,7 +23,11 @@ except ImportError:
 # generate version number
 if os.path.exists('klepto/info.py'):
     # is a source distribution, so use existing version
-    from klepto.info import this_version
+    os.chdir('klepto')
+    with open('info.py','r') as f:
+        f.readline() # header
+        this_version = f.readline().split()[-1].strip("'")
+    os.chdir('..')
 elif stable_version == target_version:
     # we are building a stable release
     this_version = target_version
@@ -31,9 +35,9 @@ else:
     # we are building a distribution
     this_version = target_version + '.dev'
     if is_release:
-      from datetime import date
-      today = "".join(date.isoformat(date.today()).split('-'))
-      this_version += "-" + today
+        from datetime import date
+        today = "".join(date.isoformat(date.today()).split('-'))
+        this_version += "-" + today
 
 # get the license info
 with open('LICENSE') as file:
@@ -104,20 +108,24 @@ Klepto also includes a few useful decorators providing::
 Current Release
 ===============
 
-The latest stable release version is klepto-%(relver)s. You can download it here.
-The latest stable version of klepto is always available at:
+This release version is klepto-%(relver)s. You can download it here.
+The latest released version of klepto is always available from::
 
     http://dev.danse.us/trac/pathos
+
+Klepto is distributed under a 3-clause BSD license.
 
 
 Development Release
 ===================
 
-If you like living on the edge, and don't mind the promise
-of a little instability, you can get the latest development
-release with all the shiny new features at:
+You can get the latest development release with all the shiny new features at::
 
-    http://dev.danse.us/packages.
+    http://dev.danse.us/packages
+
+or even better, fork us on our github mirror of the svn trunk::
+
+    https://github.com/uqfoundation
 
 
 Installation
@@ -135,7 +143,7 @@ download the tarball, unzip, and run the installer::
 You will be warned of any missing dependencies and/or settings
 after you run the "build" step above. 
 
-Alternately, klepto can be installed with easy_install::
+Alternately, klepto can be installed with easy_install or pip::
 
     [download]
     $ easy_install -f . klepto
@@ -146,7 +154,7 @@ Requirements
 
 Klepto requires::
 
-    - python, version >= 2.5, version < 3.0
+    - python2, version >= 2.5  *or*  python3, version >= 3.1
     - dill, version >= 0.2a.dev
 
 Optional requirements::
@@ -170,7 +178,7 @@ License
 Klepto is distributed under a 3-clause BSD license.
 
     >>> import klepto
-    >>> print klepto.license()
+    >>> print (klepto.license())
 
 
 Citation
@@ -239,22 +247,27 @@ dill_version = '>=0.2a.dev'
 import sys
 if has_setuptools:
     setup_code += """
-        zip_safe=False,
-        dependency_links = ['http://dev.danse.us/packages/'],
-        install_requires = ['dill%s'])
+      zip_safe=False,
+      dependency_links = ['http://dev.danse.us/packages/'],
+      install_requires = ['dill%s'],
 """ % (dill_version)
 
+# add the scripts, and close 'setup' call
+setup_code += """
+      )
+"""
+
 # exec the 'setup' code
-exec setup_code
+exec(setup_code)
 
 # if dependencies are missing, print a warning
 try:
     import dill
 except ImportError:
-    print "\n***********************************************************"
-    print "WARNING: One of the following dependencies is unresolved:"
-    print "    dill %s" % dill_version
-    print "***********************************************************\n"
+    print ("\n***********************************************************")
+    print ("WARNING: One of the following dependencies is unresolved:")
+    print ("    dill %s" % dill_version)
+    print ("***********************************************************\n")
 
 
 if __name__=='__main__':
