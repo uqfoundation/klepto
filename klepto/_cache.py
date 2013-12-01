@@ -5,12 +5,6 @@
 """
 a selection of caching decorators
 """
-from __future__ import absolute_import
-
-try:
-    from collections import namedtuple
-except ImportError:
-    from ._namedtuple import namedtuple
 from collections import deque
 from random import choice #XXX: biased?
 from heapq import nsmallest
@@ -24,11 +18,10 @@ from threading import RLock
 from klepto.rounding import deep_round, simple_round
 from klepto.archives import archive_dict
 from klepto.keymaps import hashmap
+from klepto.tools import CacheInfo
 
 __all__ = ['no_cache','inf_cache','lfu_cache',\
            'lru_cache','mru_cache','rr_cache']
-
-_CacheInfo = namedtuple("CacheInfo", ['hit','miss','load','maxsize','size'])
 
 class Counter(dict):
     'Mapping where default values are zero'
@@ -127,7 +120,7 @@ def no_cache(*arg, **kwd):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function
@@ -237,7 +230,7 @@ def inf_cache(*arg, **kwd):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function
@@ -369,7 +362,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function
@@ -528,7 +521,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function
@@ -662,7 +655,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function
@@ -785,7 +778,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         def info():
             """Report cache statistics"""
-            return _CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
+            return CacheInfo(stats[HIT], stats[MISS], stats[LOAD], maxsize, len(cache))
 
         # interface
         wrapper.__wrapped__ = user_function

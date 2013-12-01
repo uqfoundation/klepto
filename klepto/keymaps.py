@@ -167,10 +167,10 @@ class picklemap(keymap):
    #    self.typed = False  #XXX: is always typed, so set typed=False
     def encode(self, *args, **kwds):
         """use a flattened scheme for generating a key"""
-        return pickle.dumps(keymap.encode(self, *args, **kwds))
+        return pickle.dumps(keymap.encode(self, *args, **kwds), byref=True)
     def encrypt(self, *args, **kwds):
         """use a non-flat scheme for generating a key"""
-        return pickle.dumps(keymap.encrypt(self, *args, **kwds))
+        return pickle.dumps(keymap.encrypt(self, *args, **kwds), byref=True)
 
 
 # EOF

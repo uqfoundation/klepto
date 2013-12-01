@@ -7,8 +7,8 @@ from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
-stable_version = '0.0a'
-target_version = '0.1a'
+stable_version = '0.0a1'
+target_version = '0.1a1'
 is_release = False
 
 # check if easy_install is available
@@ -155,7 +155,7 @@ Requirements
 Klepto requires::
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
-    - dill, version >= 0.2a.dev
+    - dill, version >= 0.2b2.dev
 
 Optional requirements::
 
@@ -243,7 +243,7 @@ setup(name='klepto',
 """ % (target_version, long_description)
 
 # add dependencies
-dill_version = '>=0.2a.dev'
+dill_version = '>=0.2b2.dev'
 import sys
 if has_setuptools:
     setup_code += """

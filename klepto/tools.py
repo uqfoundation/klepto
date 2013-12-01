@@ -10,6 +10,16 @@ Main functions exported are::
 
 """
 
+from __future__ import absolute_import
+
+try:
+    from collections import namedtuple
+except ImportError:
+    from ._namedtuple import namedtuple
+CacheInfo = namedtuple("CacheInfo", ['hit','miss','load','maxsize','size'])
+
+__all__ = ['isiterable']
+
 def isiterable(x):
     """check if an object is iterable"""
    #try:

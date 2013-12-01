@@ -144,7 +144,7 @@ class file_archive(dict):
             try:
                 f = open(self._filename, 'wb')
                 import dill as pickle #FIXME: dill import is slow
-                pickle.dump(memo, f)
+                pickle.dump(memo, f)  #XXX: byref=True ?
                 f.close()
             except:
                 pass  #XXX: warning? fail?
