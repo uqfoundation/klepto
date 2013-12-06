@@ -1,7 +1,9 @@
 from klepto.safe import lru_cache as memoized
 from random import choice, seed
 
-def _test_cache(cache, keymap=None, maxsize=50, rangelimit=10, tries=100):
+N = 100
+
+def _test_cache(cache, keymap=None, maxsize=50, rangelimit=10, tries=N):
 
     @memoized(maxsize=maxsize, cache=cache, keymap=keymap)
     def f(x, y):
@@ -16,48 +18,7 @@ def _test_cache(cache, keymap=None, maxsize=50, rangelimit=10, tries=100):
     return f
 
 
-if __name__ == '__main__':
-
-    from klepto.archives import *
-    from klepto.keymaps import keymap, hashmap, stringmap, picklemap
-    from klepto.keymaps import SENTINEL, NOSENTINEL
-    seed(1234) # random seed
-
-    #XXX: archive/cache should allow scalar and list, also dict (as new table) ?
-    init = {}
-    #init = {'a':1}
-    #init = {'a':[1,2]}
-    #init = {'a':{'x':3}}
-
-    ad = archive_dict
-    na = null_archive
-    fa = file_archive
-    db = db_archive
-    caches = [
-      ad(archive=na(), **init),
-      ad(archive=ad(), **init),
-      ad(archive=fa(filename=None,serialized=True), **init),
-      ad(archive=fa(filename=None,serialized=False), **init),
-      ad(archive=fa(filename='xxxx.pkl',serialized=True), **init),
-      ad(archive=fa(filename='xxxx.py',serialized=False), **init),
-      ad(archive=db(database=None,table=None), **init), 
-      ad(archive=db(database='memo.db',table=None), **init), 
-      ad(archive=db(database=None,table='memo'), **init), 
-    ]
-
-    mapper = None
-    #mapper = keymap(typed=False, flat=True, sentinel=NOSENTINEL) 
-    #mapper = hashmap(typed=False, flat=True, sentinel=NOSENTINEL)
-    #mapper = stringmap(typed=False, flat=True, sentinel=NOSENTINEL)
-    #mapper = picklemap(typed=False, flat=True, sentinel=NOSENTINEL)
-    #XXX: hashmap gives different results... that's bad, right ?
-    #XXX: should have option to serialize value (as well as key) ?
-
-    func = [_test_cache(cache, mapper) for cache in caches]
-
-    for f in func:
-        print (f.info())
-
+def _cleanup():
     import os
     try: os.remove('memo.pkl')
     except: pass
@@ -81,6 +42,93 @@ if __name__ == '__main__':
     except: pass
     try: os.remove('memo.db')
     except: pass
+    return
+
+
+if __name__ == '__main__':
+
+    from klepto.archives import *
+    from klepto.keymaps import keymap, hashmap, stringmap, picklemap
+    from klepto.keymaps import SENTINEL, NOSENTINEL
+    seed(1234) # random seed
+
+    #XXX: archive/cache should allow scalar and list, also dict (as new table) ?
+    dicts = [
+      {},
+      {'a':1},
+      {'a':[1,2]},
+      {'a':{'x':3}},
+    ]
+    init = dicts[0]
+
+    na = null_archive
+    da = dict_archive
+    fa = file_archive
+    db = db_archive
+    caches = [
+      cache(archive=na(), **init),
+      cache(archive=da(), **init),
+      cache(archive=fa(filename=None,serialized=True), **init),
+      cache(archive=fa(filename=None,serialized=False), **init),
+      cache(archive=fa(filename='xxxx.pkl',serialized=True), **init),
+      cache(archive=fa(filename='xxxx.py',serialized=False), **init),
+     #cache(archive=db(database=None,table=None), **init), 
+     #cache(archive=db(database='memo.db',table=None), **init), 
+     #cache(archive=db(database=None,table='memo'), **init), 
+    ]
+    #FIXME: even 'safe' archives throw Error when cache.load, cache.dump fails
+    #       (often demonstrated in db_archive, as it barfs on tuple & dict)
+
+    #XXX: when running a single map, there should be 3 possible results:
+    #     1) flat=False may produce unhashable keys: all misses
+    #     2) typed=False doesn't distinguish float & int: more hits & loads
+    #     3) typed=True distingushes float & int: less hits & loads
+    #XXX: due to the seed, each of the 3 cases should yield the same results
+    maps = [
+      None,
+      keymap(typed=False, flat=True, sentinel=NOSENTINEL),
+      keymap(typed=False, flat=False, sentinel=NOSENTINEL),
+      keymap(typed=True, flat=True, sentinel=NOSENTINEL),
+      keymap(typed=True, flat=False, sentinel=NOSENTINEL),
+     #keymap(typed=False, flat=True, sentinel=SENTINEL),
+     #keymap(typed=False, flat=False, sentinel=SENTINEL),
+     #keymap(typed=True, flat=True, sentinel=SENTINEL),
+     #keymap(typed=True, flat=False, sentinel=SENTINEL),
+      hashmap(typed=False, flat=True, sentinel=NOSENTINEL),
+      hashmap(typed=False, flat=False, sentinel=NOSENTINEL),
+      hashmap(typed=True, flat=True, sentinel=NOSENTINEL),
+      hashmap(typed=True, flat=False, sentinel=NOSENTINEL),
+     #hashmap(typed=False, flat=True, sentinel=SENTINEL),
+     #hashmap(typed=False, flat=False, sentinel=SENTINEL),
+     #hashmap(typed=True, flat=True, sentinel=SENTINEL),
+     #hashmap(typed=True, flat=False, sentinel=SENTINEL),
+      stringmap(typed=False, flat=True, sentinel=NOSENTINEL),
+      stringmap(typed=False, flat=False, sentinel=NOSENTINEL),
+      stringmap(typed=True, flat=True, sentinel=NOSENTINEL),
+      stringmap(typed=True, flat=False, sentinel=NOSENTINEL),
+     #stringmap(typed=False, flat=True, sentinel=SENTINEL),
+     #stringmap(typed=False, flat=False, sentinel=SENTINEL),
+     #stringmap(typed=True, flat=True, sentinel=SENTINEL),
+     #stringmap(typed=True, flat=False, sentinel=SENTINEL),
+      picklemap(typed=False, flat=True, sentinel=NOSENTINEL),
+      picklemap(typed=False, flat=False, sentinel=NOSENTINEL),
+      picklemap(typed=True, flat=True, sentinel=NOSENTINEL),
+      picklemap(typed=True, flat=False, sentinel=NOSENTINEL),
+     #picklemap(typed=False, flat=True, sentinel=SENTINEL),
+     #picklemap(typed=False, flat=False, sentinel=SENTINEL),
+     #picklemap(typed=True, flat=True, sentinel=SENTINEL),
+     #picklemap(typed=True, flat=False, sentinel=SENTINEL),
+    ]
+    #XXX: should have option to serialize value (as well as key) ?
+
+    for mapper in maps:
+       #print (mapper)
+        func = [_test_cache(cache, mapper) for cache in caches]
+        _cleanup()
+
+        for f in func:
+           #print (f.info())
+            assert f.info().hit + f.info().miss + f.info().load == N
 
 
 # EOF

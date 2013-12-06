@@ -4,9 +4,9 @@ custom caching dict, which archives results to memory, file, or database
 """
 from __future__ import absolute_import
 
-__all__ = ['archive_dict', 'null_archive', 'file_archive', 'db_archive']
+__all__ = ['cache','dict_archive','null_archive','file_archive','db_archive']
 
-class archive_dict(dict):
+class cache(dict):
     """dictionary augmented with an archive backend"""
     def __init__(self, *args, **kwds):
         """initialize a dictionary with an archive backend
@@ -71,6 +71,16 @@ class archive_dict(dict):
     # interface
     archive = property(__get_archive, __archive)
     pass
+
+
+class dict_archive(dict):
+    """dictionary with an dictionary-style archive interface"""
+    def __asdict__(self):
+        """build a dictionary containing the archive contents"""
+        return self
+    def __repr__(self):
+        return "archive(%s)" % (self.__asdict__())
+    __repr__.__doc__ = dict.__repr__.__doc__
 
 
 class null_archive(dict):
@@ -356,5 +366,8 @@ class db_archive(dict): #XXX: requires UTF-8 key
         return tuple(self._curs.execute(sql, (key,)))
     pass
 
+
+# backward compatibility
+archive_dict = cache
 
 # EOF

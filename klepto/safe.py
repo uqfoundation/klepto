@@ -18,7 +18,7 @@ except ImportError:
 from functools import update_wrapper
 from threading import RLock
 from klepto.rounding import deep_round, simple_round
-from klepto.archives import archive_dict
+from klepto.archives import cache as archive_dict
 from klepto.keymaps import stringmap
 from klepto.tools import CacheInfo
 
@@ -91,6 +91,7 @@ def no_cache(*arg, **kwd):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             # look in archive
@@ -104,6 +105,9 @@ def no_cache(*arg, **kwd):
                 # if not found, then compute
                 result = user_function(*args, **kwds)
                 cache[key] = result
+                stats[MISS] += 1
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
                 stats[MISS] += 1
 
             # purge cache
@@ -207,6 +211,7 @@ def inf_cache(*arg, **kwd):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             try:
@@ -225,6 +230,9 @@ def inf_cache(*arg, **kwd):
                     result = user_function(*args, **kwds)
                     cache[key] = result
                     stats[MISS] += 1
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
+                stats[MISS] += 1
             return result
 
         def archive(obj):
@@ -328,6 +336,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             try:
@@ -361,6 +370,9 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                                               iter(use_count.items()),
                                               key=itemgetter(1)):
                             del cache[k], use_count[k]
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
+                stats[MISS] += 1
             return result
 
         def archive(obj):
@@ -472,6 +484,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             try:
@@ -514,6 +527,10 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                             key = queue_popleft()
                             refcount[key] -= 1
                         del cache[key], refcount[key]
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
+                stats[MISS] += 1
+                return result
 
             # periodically compact the queue by eliminating duplicate keys
             # while preserving order of most recent access
@@ -633,6 +650,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             try:
@@ -661,6 +679,10 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                         queue.clear()
                     else: # purge most recently used cache entry
                         del cache[queue_pop()]
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
+                stats[MISS] += 1
+                return result
 
             # record recent use of this key
             queue_append(key)
@@ -767,6 +789,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
+                stats[MISS] += 1
                 return result
 
             try:
@@ -793,6 +816,9 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
                         cache.clear() 
                     else: # purge random cache entry
                         del cache[choice(list(cache.keys()))]
+            except: #TypeError: # unhashable key
+                result = user_function(*args, **kwds)
+                stats[MISS] += 1
             return result
 
         def archive(obj):

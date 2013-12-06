@@ -120,9 +120,9 @@ except ImportError:
     pass
 
 
-from klepto.archives import archive_dict, db_archive 
+from klepto.archives import cache, db_archive 
 import dill
-@memoized(cache=archive_dict(archive=db_archive()))
+@memoized(cache=cache(archive=db_archive()))
 def add(x,y):
     return x+y
 add(1,2)

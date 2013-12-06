@@ -16,7 +16,7 @@ except ImportError:
 from functools import update_wrapper
 from threading import RLock
 from klepto.rounding import deep_round, simple_round
-from klepto.archives import archive_dict
+from klepto.archives import cache as archive_dict
 from klepto.keymaps import hashmap
 from klepto.tools import CacheInfo
 
