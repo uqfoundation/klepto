@@ -128,13 +128,18 @@ class file_archive(dict):
                 memo = {}
         else:
             import os
+            import tempfile
             file = os.path.basename(self._filename)
             root = os.path.realpath(self._filename).rstrip(file)[:-1]
             curdir = os.path.realpath(os.curdir)
             file = file.rstrip('.py') or file.rstrip('.pyc') \
                 or file.rstrip('.pyo') or file.rstrip('.pyd')
+            name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
+            string = 'from %s import memo as %s' % (file, name)
             os.chdir(root)
-            exec('from .%s import memo' % file) #FIXME: unsafe
+            exec(string, globals()) #FIXME: unsafe, and potential name conflict
+            memo = globals().get(name, {}) #XXX: or throw error if not found ?
+            globals().pop(name, None)
             os.chdir(curdir)
         return memo
     def __save__(self, memo=None):
@@ -149,7 +154,8 @@ class file_archive(dict):
             except:
                 pass  #XXX: warning? fail?
         else:
-            open(self._filename, 'wb').write('memo = %s' % memo)
+            from .tools import _b
+            open(self._filename, 'wb').write(_b('memo = %s' % memo))
         return
     #FIXME: missing a bunch of __...__
     def __getitem__(self, key):
@@ -225,14 +231,15 @@ class file_archive(dict):
 #XXX: should inherit from object not dict ?
 class db_archive(dict): #XXX: requires UTF-8 key
     """dictionary-style interface to a database"""
-    def __init__(self, database=None, table=None, dbtype=None):
+    def __init__(self, database=None, table=None):#, dbtype=None):
         """initialize a database with a synchronized dictionary interface
 
     Inputs:
         database: url of the database backend [default: :memory:]
         table: name of the associated database table
-        dbtype: PEP249-compliant database module [default: sqlite3]
         """
+       #dbtype: PEP249-compliant database module [default: sqlite3]
+        dbtype = None #FIXME: code below not dbapi-complaint (see sqlalchemy)
         if dbtype is None: import sqlite3 as db
         else: db = dbtype
         if database is None: database = ':memory:'

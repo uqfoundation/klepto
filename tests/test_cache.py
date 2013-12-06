@@ -155,15 +155,16 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("pickle_dict_cache = %s" % add.__cache__())
+
 import sys
 if hex(sys.hexversion) >= '0x30000f0':
-    import codecs
-    picklekey1 = codecs.latin_1_encode('\x80\x03K\x01K\x02\x86q\x00}q\x01\x86q\x02.')[0]
-    picklekey2 = codecs.latin_1_encode('\x80\x03K\x01K\x03\x86q\x00}q\x01\x86q\x02.')[0]
+    picklekey1 = '\x80\x03K\x01K\x02\x86q\x00}q\x01\x86q\x02.'
+    picklekey2 = '\x80\x03K\x01K\x03\x86q\x00}q\x01\x86q\x02.'
 else:
     picklekey1 = '\x80\x02K\x01K\x02\x86q\x00}q\x01\x86q\x02.'
     picklekey2 = '\x80\x02K\x01K\x03\x86q\x00}q\x01\x86q\x02.'
-assert add.__cache__() == {picklekey1: 3, picklekey2: 4}
+from klepto.tools import _b
+assert add.__cache__() == {_b(picklekey1): 3, _b(picklekey2): 4}
 
 
 # EOF

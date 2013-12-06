@@ -32,6 +32,14 @@ def isiterable(x):
     except TypeError: return False
    #return hasattr(x, '__len__') or hasattr(x, '__iter__')
 
+def _b(message):
+    """convert string to correct format for buffer object"""
+    import sys
+    if hex(sys.hexversion) >= '0x30000f0':
+        import codecs
+        return codecs.latin_1_encode(message)[0]
+    return message
+
 
 if __name__=='__main__':
     pass
