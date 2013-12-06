@@ -12,7 +12,7 @@ simple dictionary-sytle interface for all caches and archives, and all
 caches can be applied to any python function as a decorator. Keymaps
 are algorithms for converting a function's input signature to a unique
 dictionary, where the function's results are the dictionary value.
-Thus for y = f(x), y will be stored in cache[x] (e.g. {x:y}).
+Thus for `y = f(x)`, `y` will be stored in `cache[x]` (e.g. `{x:y}`).
 
 Klepto provides both standard and 'safe' caching, where safe caches
 are slower but can recover from hashing errors. Klepto is intended
@@ -51,7 +51,7 @@ Klepto provides the following keymaps::
 
 * 'keymap' - keys are raw python objects
 * 'hashmap' - keys are the hash for the python object
-* 'stringmap' - keys are the __repr__ for the python object
+* 'stringmap' - keys are the `__repr__` for the python object
 * 'picklemap' - keys are the serialized python object
 
 Klepto also includes a few useful decorators providing::
