@@ -250,7 +250,7 @@ class file_archive(dict):
 if __alchemy:
   class sql_archive(dict):
       """dictionary-style interface to a sql database"""
-      def __init__(self, database=None, table=None, serialized=True):
+      def __init__(self, database=None, table=None, **kwds):
           """initialize a sql database with a synchronized dictionary interface
 
       Connect to an existing database, or initialize a new database, at the
@@ -259,14 +259,15 @@ if __alchemy:
       database 'foo' on localhost, database='mysql://user:pass@localhost/foo'.
       For postgresql, use database='postgresql://user:pass@localhost/foo'. 
       When connecting to sqlite, the default database is ':memory:'; otherwise,
-      the default database is 'defaultdb'.
+      the default database is 'defaultdb'.  Allows keyword options for database
+      configuration, such as connection pooling.
 
       Inputs:
           database: url of the database backend [default: sqlite:///:memory:]
           table: name of the associated database table [default: 'memo']
           serialized: if True, pickle table contents; otherwise cast as strings
           """
-          self._serialized = bool(serialized)
+          self._serialized = bool(kwds.pop('serialized', True))
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
@@ -277,11 +278,11 @@ if __alchemy:
               dbname = 'defaultdb'
               self._database = "%s/%s" % (url,dbname)
           if dbname == ':memory:':
-              self._engine = create_engine(url)
+              self._engine = create_engine(url, **kwds)
           elif self._database.startswith('sqlite'):
-              self._engine = create_engine(self._database)
+              self._engine = create_engine(self._database, **kwds)
           else:
-              self._engine = create_engine(url)
+              self._engine = create_engine(url) #XXX: **kwds ?
               try:
                   conn = self._engine.connect()
                   if self._database.startswith('postgres'):
@@ -295,7 +296,7 @@ if __alchemy:
                   self._engine.execute("USE %s;" % dbname)
               except Exception:
                   pass
-              self._engine = create_engine(self._database)
+              self._engine = create_engine(self._database, **kwds)
           # create table, if doesn't exist
           self._metadata = MetaData()
           self._key = 'key' # primary key name    #XXX: or table name ?
