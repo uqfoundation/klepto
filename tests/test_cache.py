@@ -120,15 +120,15 @@ except ImportError:
     pass
 
 
-from klepto.archives import cache, db_archive 
+from klepto.archives import cache, sql_archive 
 import dill
-@memoized(cache=cache(archive=db_archive()))
+@memoized(cache=cache(archive=sql_archive()))
 def add(x,y):
     return x+y
 add(1,2)
 add(1,2)
 add(1,3)
-#print ("db_cache = %s" % add.__cache__())
+#print ("sql_cache = %s" % add.__cache__())
 assert add.__cache__() == {'((1, 3), {})':4, '((1, 2), {})':3}
 
 @memoized(cache=dict())

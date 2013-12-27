@@ -64,7 +64,7 @@ if __name__ == '__main__':
     na = null_archive
     da = dict_archive
     fa = file_archive
-    db = db_archive
+    db = sql_archive
     caches = [
       cache(archive=na(), **init),
       cache(archive=da(), **init),
@@ -77,7 +77,7 @@ if __name__ == '__main__':
      #cache(archive=db(database=None,table='memo'), **init), 
     ]
     #FIXME: even 'safe' archives throw Error when cache.load, cache.dump fails
-    #       (often demonstrated in db_archive, as it barfs on tuple & dict)
+    #       (often demonstrated in sql_archive, as it barfs on tuple & dict)
 
     #XXX: when running a single map, there should be 3 possible results:
     #     1) flat=False may produce unhashable keys: all misses

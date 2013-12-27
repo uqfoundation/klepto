@@ -90,7 +90,8 @@ Klepto has standard and 'safe' variants of the following::
 Klepto has the following archive types::
 
     - 'file_archive' - a dictionary-style interface to a file
-    - 'db_archive' - a dictionary-style interface to a database
+    - 'sql_archive' - a dictionary-style interface to a sql database
+    - 'dict_archive' - a dictionary with an archive interface
     - 'null_archive' - a dictionary-style interface to a dummy archive 
 
 Klepto provides the following keymaps::
@@ -156,6 +157,7 @@ Klepto requires::
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
     - dill, version >= 0.2b2.dev
+    - sqlalchemy, version >= 0.8.4
 
 Optional requirements::
 
@@ -244,13 +246,14 @@ setup(name='klepto',
 
 # add dependencies
 dill_version = '>=0.2b2.dev'
+sqlalchemy_version = '>=0.8.4' #NOTE: if sqlalchemy not found, can 'un-require'
 import sys
 if has_setuptools:
     setup_code += """
       zip_safe=False,
       dependency_links = ['http://dev.danse.us/packages/'],
-      install_requires = ['dill%s'],
-""" % (dill_version)
+      install_requires = ['dill%s', 'sqlalchemy%s'],
+""" % (dill_version, sqlalchemy_version)
 
 # add the scripts, and close 'setup' call
 setup_code += """
@@ -263,10 +266,12 @@ exec(setup_code)
 # if dependencies are missing, print a warning
 try:
     import dill
+    import sqlalchemy
 except ImportError:
     print ("\n***********************************************************")
     print ("WARNING: One of the following dependencies is unresolved:")
     print ("    dill %s" % dill_version)
+    print ("    sqlalchemy %s" % sqlalchemy_version)
     print ("***********************************************************\n")
 
 

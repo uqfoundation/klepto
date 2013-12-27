@@ -44,7 +44,8 @@ Klepto has standard and 'safe' variants of the following::
 Klepto has the following archive types::
 
 * 'file_archive' - a dictionary-style interface to a file
-* 'db_archive' - a dictionary-style interface to a database
+* 'sql_archive' - a dictionary-style interface to a sql database
+* 'dict_archive' - a dictionary with an archive interface
 * 'null_archive' - a dictionary-style interface to a dummy archive 
 
 Klepto provides the following keymaps::
