@@ -264,7 +264,7 @@ if __alchemy:
       Inputs:
           database: url of the database backend [default: sqlite:///:memory:]
           table: name of the associated database table [default: 'memo']
-          serialized: if True, pickle table contents; otherwise table uses strings
+          serialized: if True, pickle table contents; otherwise cast as strings
           """
           self._serialized = bool(serialized)
           # create database, if doesn't exist
@@ -483,14 +483,22 @@ if __alchemy:
       #FIXME: viewitems, viewkeys, viewvalues
       pass
 else:
-  class sql_archive(dict): #XXX: requires UTF-8 key
+  class sql_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
       """dictionary-style interface to a sql database"""
       def __init__(self, database=None, table=None, **kwds): #serialized
-          """initialize a database with a synchronized dictionary interface
+          """initialize a  sql database with a synchronized dictionary interface
+
+      Connect to an existing database, or initialize a new database, at the
+      selected database url. For example, to use a sqlite database 'foo.db'
+      in the current directory, database='sqlite:///foo.db'.  To use a mysql
+      or postgresql database, sqlalchemy must be installed.  When connecting
+      to sqlite, the default database is ':memory:'.  Storable values are
+      limited to strings, integers, floats, and other basic objects.  To store
+      functions, classes, and similar constructs, sqlalchemy must be installed.
 
       Inputs:
-          database: url of the database backend [default: :memory:]
-          table: name of the associated database table
+          database: url of the database backend [default: sqlite:///:memory:]
+          table: name of the associated database table [default: 'memo']
           """
           import sqlite3 as db
           if database is None: database = 'sqlite:///:memory:'
@@ -502,17 +510,47 @@ else:
               raise ValueError("install sqlalchemy for non-sqlite database support")
           dbname = self._database.split('sqlite:///')[-1]
           self._conn = db.connect(dbname)
-          self._curs = self._conn.cursor()
+          self._engine = self._conn.cursor()
           sql = "create table if not exists %s(argstr, fval)" % table
-          self._curs.execute(sql)
+          self._engine.execute(sql)
+          # compatibility
+          self._metadata = None
+          self._key = 'key'
+          self._val = 'val'
           return
-      def __asdict__(self):
-          """build a dictionary containing the archive contents"""
-          sql = "select * from %s" % self._table
-          res = self._curs.execute(sql)
-          d = {}
-          [d.update({k:v}) for (k,v) in res] # always get the last one
-          return d
+      def __drop__(self, **kwds):
+          """drop the database table
+
+      EXPERIMENTAL: also drop the associated database. For certain
+      database engines, this may not work due to permission issues.
+      Caller may need to be connected as a superuser and database owner.
+      To drop associated database, use __drop__(database=True)
+          """
+          if not bool(kwds.get('database', False)):
+              self._engine.executescript('drop table if exists %s;' % self._table)
+              self._engine = self._conn = self._table = None
+              return
+          try:
+              dbname = self._database.lstrip('sqlite:///')
+              conn = db.connect(':memory:')
+              conn.execute("DROP DATABASE %s;" % dbname) #FIXME: always fails
+          except Exception:
+              import os
+              dbpath = self._database.split('///')[-1]
+              if os.path.exists(dbpath): # else fail silently
+                  os.remove(dbpath)
+          self._engine = self._conn = self._table = None
+          return
+      def __len__(self):
+          return len(self.__asdict__())
+      def __contains__(self, key):
+          return self.has_key(key)
+      def __setitem__(self, key, value): #XXX: maintains 'history' of values
+          sql = "insert into %s values(?,?)" % self._table
+          self._engine.execute(sql, (key,value))
+          self._conn.commit()
+          return
+      __setitem__.__doc__ = dict.__setitem__.__doc__
       #FIXME: missing a bunch of __...__
       def __getitem__(self, key):
           res = self._select_key_items(key)
@@ -521,27 +559,28 @@ else:
       __getitem__.__doc__ = dict.__getitem__.__doc__
       def __iter__(self): #FIXME: should be dict_keys(...) instance
           sql = "select argstr from %s" % self._table
-          return (k[-1] for k in set(self._curs.execute(sql)))
+          return (k[-1] for k in set(self._engine.execute(sql)))
       __iter__.__doc__ = dict.__iter__.__doc__
-      def __repr__(self):
-          return "archive(%s: %s)" % (self._table, self.__asdict__())
-      __repr__.__doc__ = dict.__repr__.__doc__
-      def __setitem__(self, key, value): #XXX: maintains 'history' of values
-          sql = "insert into %s values(?,?)" % self._table
-          self._curs.execute(sql, (key,value))
-          self._conn.commit()
-          return
-      __setitem__.__doc__ = dict.__setitem__.__doc__
-      def clear(self):
-          [self.pop(k) for k in self.keys()] # better delete table, add empty ?
-          return
-      clear.__doc__ = dict.clear.__doc__
-      #FIXME: copy, fromkeys
       def get(self, key, value=None):
           res = self._select_key_items(key)
           if res: value = res[-1][-1]
           return value
       get.__doc__ = dict.get.__doc__
+      def clear(self):
+          [self.pop(k) for k in self.keys()] # better delete table, add empty ?
+          return
+      clear.__doc__ = dict.clear.__doc__
+      #FIXME: copy, fromkeys
+      def __asdict__(self):
+          """build a dictionary containing the archive contents"""
+          sql = "select * from %s" % self._table
+          res = self._engine.execute(sql)
+          d = {}
+          [d.update({k:v}) for (k,v) in res] # always get the last one
+          return d
+      def __repr__(self):
+          return "archive(%s: %s)" % (self._table, self.__asdict__())
+      __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           def has_key(self, key):
               return bool(self._select_key_items(key))
@@ -580,7 +619,7 @@ else:
               if not L: raise KeyError(key)
               _value = value[0]
           sql = "delete from %s where argstr = ?" % self._table
-          self._curs.execute(sql, (key,))
+          self._engine.execute(sql, (key,))
           self._conn.commit()
           return _value 
       pop.__doc__ = dict.pop.__doc__
@@ -605,37 +644,10 @@ else:
           return
       update.__doc__ = dict.update.__doc__
       #FIXME: viewitems, viewkeys, viewvalues
-      def __len__(self):
-          return len(self.__asdict__())
-      def __contains__(self, key):
-          return self.has_key(key)
       def _select_key_items(self, key):
           '''Return a tuple of (key, value) pairs that match the specified key'''
           sql = "select * from %s where argstr = ?" % self._table
-          return tuple(self._curs.execute(sql, (key,)))
-      def __drop__(self, **kwds): #FIXME: broken... bad SQL for sqlite
-          """drop the database table
-
-      EXPERIMENTAL: also drop the associated database. For certain
-      database engines, this may not work due to permission issues.
-      Caller may need to be connected as a superuser and database owner.
-      To drop associated database, use __drop__(database=True)
-          """
-          if not bool(kwds.get('database', False)):
-              self._conn('DROP TABLE %s;' % self._table)
-              self._table = None
-              return
-          try:
-              dbname = self._database.lstrip('sqlite:///')
-              conn = db.connect(':memory:')
-              conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
-          except Exception:
-              import os
-              dbpath = self._database.split('///')[-1]
-              if os.path.exists(dbpath): # else fail silently
-                  os.remove(dbpath)
-          self._table = None
-          return
+          return tuple(self._engine.execute(sql, (key,)))
       pass
 
 

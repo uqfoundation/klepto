@@ -157,10 +157,10 @@ Klepto requires::
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
     - dill, version >= 0.2b2.dev
-    - sqlalchemy, version >= 0.8.4
 
 Optional requirements::
 
+    - sqlalchemy, version >= 0.8.4
     - setuptools, version >= 0.6
 
 
@@ -246,14 +246,14 @@ setup(name='klepto',
 
 # add dependencies
 dill_version = '>=0.2b2.dev'
-sqlalchemy_version = '>=0.8.4' #NOTE: if sqlalchemy not found, can 'un-require'
+sqlalchemy_version = '>=0.8.4'
 import sys
 if has_setuptools:
     setup_code += """
       zip_safe=False,
       dependency_links = ['http://dev.danse.us/packages/'],
-      install_requires = ['dill%s', 'sqlalchemy%s'],
-""" % (dill_version, sqlalchemy_version)
+      install_requires = ['dill%s'],
+""" % (dill_version)
 
 # add the scripts, and close 'setup' call
 setup_code += """

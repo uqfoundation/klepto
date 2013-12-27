@@ -21,7 +21,7 @@ if __alchemy:
     assert d['c'] == min
     assert d['d'](2) == squared(2)
 else:
-    print("please install sqlalchemy")
+    print("for greater capabilities, install sqlalchemy")
 
 
 # EOF
