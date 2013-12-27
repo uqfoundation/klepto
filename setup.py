@@ -46,7 +46,7 @@ with open('LICENSE') as file:
 # generate the readme text
 long_description = \
 """---------------------------------------------------
-klepto: a utility for caching and archiving
+klepto: transparent caching to memory, disk, or database
 ---------------------------------------------------
 
 Klepto extends python's 'lru_cache' to utilize different keymaps and
@@ -228,7 +228,7 @@ write_info_py()
 setup_code = """
 setup(name='klepto',
       version='%s',
-      description='a utility for caching and archiving',
+      description='transparent caching to memory, disk, or database',
       long_description = '''%s''',
       author = 'Mike McKerns',
       maintainer = 'Mike McKerns',

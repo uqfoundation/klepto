@@ -1,6 +1,6 @@
 klepto
 ====
-a utility for caching and archiving
+transparent caching to memory, disk, or database
 
 About Klepto
 ----------
