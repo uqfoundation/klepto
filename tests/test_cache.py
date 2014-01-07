@@ -23,7 +23,7 @@ new: (1,), {'bar': 'spam'}
 from klepto.safe import inf_cache as memoized
 #from klepto import inf_cache as memoized
 from klepto.keymaps import picklemap
-dumps = picklemap(flat=False)
+dumps = picklemap(flat=False, serializer='dill')
 
 class Spam(object):
     """A simple class with a memoized method"""

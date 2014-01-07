@@ -34,6 +34,7 @@ from . import safe
 from . import archives
 from . import keymaps
 from . import tools
+from . import crypto
 
 
 def license():

@@ -302,7 +302,7 @@ if __alchemy:
           self._key = 'key' # primary key name    #XXX: or table name ?
           self._val = 'val' # object storage name #XXX: ???
           keytype = String(255) #XXX: other better fixed size?
-          if serialized:
+          if self._serialized:
               valtype = PickleType(pickler=dill)
           else:
               valtype = Text() #XXX: String(255) or BLOB() ???
