@@ -29,6 +29,8 @@ __license__ = """
 
 from ._cache import no_cache, inf_cache, lfu_cache, \
                     lru_cache, mru_cache, rr_cache
+from ._inspect import signature, isvalid, validate, \
+                      keygen, strip_markup, NULL, _keygen
 from . import rounding
 from . import safe
 from . import archives

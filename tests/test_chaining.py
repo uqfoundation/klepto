@@ -19,17 +19,5 @@ assert bool(h.outer) == False
 assert bool(p.outer) == False
 assert bool(hp.outer) == True
 
-try:
-    import numpy as np
-    x = np.arange(2000)
-    y = x.copy()
-    y[1000] = -1
-
-    assert h(x) == h(y) # equal because repr for large np arrays uses '...'
-    assert p(x) != p(y)
-    assert hp(x) != hp(y)
-except ImportError:
-    pass
-
 
 # EOF
