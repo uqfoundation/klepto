@@ -8,7 +8,7 @@ def signature(func, variadic=True, markup=True, safe=False):
     func: the function to inspect
     variadic: if True, also return names of (*args, **kwds) used in func
     markup: if True, show a "!" before any 'unsettable' parameters
-    safe: if True, return (),{},None,None instead of throwing an error
+    safe: if True, return (None,None,None,None) instead of throwing an error
 
     Returns a tuple of variable names and a dict of keywords with defaults.
     If variadic=True, additionally return names of func's (*args, **kwds).
@@ -138,14 +138,23 @@ def signature(func, variadic=True, markup=True, safe=False):
     return explicit, defaults
 
 
+import sys
 def isvalid(func, *args, **kwds):
     """check if func(*args,**kwds) is a valid call for function 'func'
 
-    returns True if valid, otherwise (e.g. catches an error) returns False"""
+    returns True if valid, returns False if an error is thrown"""
     try:
         validate(func, *args, **kwds)
         return True
     except:
+        error = sys.exc_info()[1]
+        # check for the special case of builtins, etc
+        if str(error).endswith('is not a Python function'):
+           #return None  # None distinguishes from False, as "I don't know"
+            try: # probably inexpensive, so just try evaluating it... (yikes?)
+                func(*args, **kwds)
+                return True
+            except: pass
         return False
 
 def validate(func, *args, **kwds):
@@ -155,7 +164,8 @@ def validate(func, *args, **kwds):
     If valid args and kwds are provided, "None" is returned.
 
     NOTE: 'validate' does not call f(*args,**kwds), instead checks *args,**kwds
-    against the call signature of func."""
+    against the call signature of func. Thus, 'validate' will fail when
+    called to inspect builtins and other non-python functions."""
     named, defaults, hasargs, haskwds = signature(func)
 
     # if it's a partial, set func = func.func
@@ -259,8 +269,10 @@ def keygen(*ignored):
       - register: register a new keymap
 
   The function is not evaluated until the 'call' method is called.  Both
-  generating the key and checking for validity do not call the function.
-  """ # returns (*varargs, kwds) where all info in kwds except varargs
+  generating the key and checking for validity avoid calling the function
+  by inspecting the function's input signature."""
+  # returns (*varargs, **kwds) where all info in kwds except varargs
+  # however, special cases (builtins, etc) return (*args, **kwds)
   def dec(f):
     _args = [(),{}]
     _keymap = [kleptokeymap()]
@@ -345,11 +357,17 @@ def _keygen(func, ignored, *args, **kwds):
 #   crossref = True
     # hard-wire discover and apply function defaults to True
     defaults = True
+    # hard-wire that keygen is 'safe' (doesn't throw errors from signature)
+    safe = True
 
     # get variable names and defaults from func signature
-    explicitly_named,user_kwds = signature(func,markup=False,variadic=False)
-    # mix-in the function's defaults to the user provided args/kwds
+    explicitly_named,user_kwds = signature(func,markup=False,variadic=False, safe=safe)
+    # start off with user_args as the user provided args
     user_args = copy(args)
+    # if safe and signature failed, return unmolested *args, **kwds
+    if explicitly_named is None and user_kwds is None:
+        return user_args, kwds.copy()
+    # mix-in the function's defaults to the user provided kwds
     if defaults:
         user_kwds.update(kwds)
     else: # don't apply the function defaults (why, you wouldn't, I don't know)

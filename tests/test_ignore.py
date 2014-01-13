@@ -3,7 +3,7 @@ from functools import partial
 from klepto.keymaps import hashmap
 from klepto import NULL
 from klepto import signature, keygen
-from klepto import _keygen
+from klepto import _keygen, isvalid
 
 def bar(x,y,z,a=1,b=2,*args):
   return x+y+z+a+b
@@ -149,6 +149,42 @@ assert str(foo.keymap()) == str(h)
 assert foo.key() == _hash1
 assert foo(10,y=1,z=10) == _hash1
 assert foo(10,y=2,z=10) == _hash2
+
+#################################################################
+# test special cases (builtins) for signature, isvalid, _keygen
+def add(x,y):
+    return x+y
+
+p = partial(add, 0,x=0)
+p2 = partial(add, z=0)
+p3 = partial(add, 0)
+
+assert signature(min, safe=True) == (None, None, None, None)
+assert signature(p, safe=True) == (None, None, None, None)
+assert signature(p2, safe=True) == (('x', 'y'), {'z': 0}, '', '')
+assert signature(p3, safe=True) == (('y',), {'!x': 0}, '', '')
+assert isvalid(min, 0,1) == True
+assert isvalid(min, 0) == False
+assert isvalid(min) == False
+assert isvalid(p, 0,1) == False
+assert isvalid(p, 0) == False
+assert isvalid(p) == False
+assert isvalid(p2, 0,1) == False
+assert isvalid(p2, 0) == False
+assert isvalid(p2) == False
+assert isvalid(p3, 0,1) == False
+assert isvalid(p3, 0) == True
+assert isvalid(p3) == False
+assert _keygen(p3, [], 0) == ((), {'y': 0})
+assert _keygen(p2, [], 0) == ((), {'x': 0, 'z': 0})
+assert _keygen(p, [], 0) == ((0,), {})
+assert _keygen(min, [], x=0,y=1) == ((), {'y': 1, 'x': 0})
+assert _keygen(min, [], 0,1) == ((0,1), {})
+assert _keygen(min, [], 0) == ((0,), {})
+assert _keygen(min, 'x', 0) == ((0,), {})
+assert _keygen(min, ['x','y'], 0) == ((0,), {})
+assert _keygen(min, [0,1], 0) == ((0,), {})
+assert _keygen(min, ['*'], 0) == ((0,), {})
 
 
 # EOF
