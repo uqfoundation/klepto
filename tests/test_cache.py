@@ -28,7 +28,7 @@ dumps = picklemap(flat=False, serializer='dill')
 class Spam(object):
     """A simple class with a memoized method"""
 
-    @memoized(keymap=dumps)
+    @memoized(keymap=dumps, ignore='self')
     def eggs(self, *args, **kwds):
        #print ('new:', args, kwds)
         from random import random
@@ -120,8 +120,9 @@ except ImportError:
     pass
 
 
-from klepto.archives import cache, sql_archive 
+import sys
 import dill
+from klepto.archives import cache, sql_archive 
 @memoized(cache=cache(archive=sql_archive()))
 def add(x,y):
     return x+y
@@ -129,7 +130,9 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("sql_cache = %s" % add.__cache__())
-assert add.__cache__() == {'((1, 3), {})':4, '((1, 2), {})':3}
+_key4 = '((), '+str({'y':3, 'x':1})+')'
+_key3 = '((), '+str({'y':2, 'x':1})+')'
+assert add.__cache__() == {_key4: 4, _key3: 3}
 
 @memoized(cache=dict())
 def add(x,y):
@@ -138,7 +141,7 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("dict_cache = %s" % add.__cache__())
-assert add.__cache__() == {'((1, 3), {})':4, '((1, 2), {})':3}
+assert add.__cache__() == {_key4: 4, _key3: 3}
 
 @memoized(cache=add.__cache__())
 def add(x,y):
@@ -146,7 +149,8 @@ def add(x,y):
 add(1,2)
 add(2,2)
 #print ("re_dict_cache = %s" % add.__cache__())
-assert add.__cache__() == {'((1, 3), {})': 4, '((1, 2), {})': 3, '((2, 2), {})': 4}
+_key2 = '((), '+str({'y':2, 'x':2})+')'
+assert add.__cache__() == {_key4: 4, _key3: 3, _key2: 4}
 
 @memoized(keymap=dumps)
 def add(x,y):
@@ -155,16 +159,11 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("pickle_dict_cache = %s" % add.__cache__())
-
-import sys
-if hex(sys.hexversion) >= '0x30000f0':
-    picklekey1 = '\x80\x03K\x01K\x02\x86q\x00}q\x01\x86q\x02.'
-    picklekey2 = '\x80\x03K\x01K\x03\x86q\x00}q\x01\x86q\x02.'
-else:
-    picklekey1 = '\x80\x02K\x01K\x02\x86q\x00}q\x01\x86q\x02.'
-    picklekey2 = '\x80\x02K\x01K\x03\x86q\x00}q\x01\x86q\x02.'
-from klepto.tools import _b
-assert add.__cache__() == {_b(picklekey1): 3, _b(picklekey2): 4}
+_key4 = eval(_key4)
+_key3 = eval(_key3)
+_pkey4 = dill.dumps(_key4)
+_pkey3 = dill.dumps(_key3)
+assert add.__cache__() == {_pkey4: 4, _pkey3: 3}
 
 
 # EOF

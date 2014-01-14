@@ -1,4 +1,4 @@
-#FIXME: currently, klepto's caches ignore default kwd values
+#FIXME: klepto's caches ignore names/index, however ignore should be in keymap
 
 
 import inspect
@@ -259,7 +259,8 @@ def keygen(*ignored):
   The decorator accepts integers (for the index of positional args to ignore,
   or strings (the names of the kwds to ignore). A cache key is returned,
   built with the registered keymap. Ignored arguments are stored in the
-  keymap with a value of klepto.NULL.
+  keymap with a value of klepto.NULL.  Note that for class methods, it may
+  be useful to ignore 'self'.
 
   The decorated function will gain new methods for working with cache keys
       - call: __call__ the function with the most recently provided arguments
@@ -283,7 +284,8 @@ def keygen(*ignored):
       _args[0] = args
       _args[1] = kwds
       _map = _keymap[0]
-      return _map(_keygen(f, ignored, *args, **kwds))
+      args,kwds = _keygen(f, ignored, *args, **kwds)
+      return _map(*args, **kwds)
     def call():
       "call func with the most recently provided (*args, **kwds)"
       ar,kw = last_args()
@@ -296,7 +298,8 @@ def keygen(*ignored):
       "get cache 'key' for most recently provided (*args, **kwds)"
       ar,kw = last_args()
       _map = _keymap[0]
-      return _map(_keygen(f, ignored, *ar, **kw)) #XXX: better lookup saved key?
+      ar,kw = _keygen(f, ignored, *ar, **kw) #XXX: better lookup saved key?
+      return _map(*ar, **kw)
     def register(mapper):
       "register a new keymap instance" 
       if isinstance(mapper, type): mapper = mapper()
@@ -352,6 +355,7 @@ def _keygen(func, ignored, *args, **kwds):
 
     ignored can include names (e.g. 'x','y'), indicies (e.g. 0,1), or '*','**'.
     if '*' in ignored, all varargs are ignored. Similarly for '**' and varkwds.`
+    Note that for class methods, it may be useful to ignore 'self'.
     """
     # hard-wire cross-populate names and indicies to True
 #   crossref = True
@@ -377,6 +381,21 @@ def _keygen(func, ignored, *args, **kwds):
     if isinstance(ignored, (str,int)): ignored = [ignored]
     index_to_ignore = set(i for i in ignored if isinstance(i,int))
     names_to_ignore = set(i for i in ignored if isinstance(i,str))
+
+    # if ignore self, remove self instead of NULL it
+    if inspect.isfunction(func):
+        try: # this is a pretty good filter that: user_args[0] is self
+            _bound = getattr(user_args[0], func.__name__)
+            _self = getattr(_bound, 'im_self', None)
+            if _self is None: _self = getattr(_bound, '__self__')
+            assert _self == user_args[0]
+        except:
+            _bound = None
+        if _bound and explicitly_named[0] in ignored:
+            user_args = user_args[1:]                # remove 'self' instance
+            user_kwds.pop(explicitly_named[0], None) #XXX: unnecessary?
+            explicitly_named = explicitly_named[1:]  # remove 'self' name
+            #XXX: hopefully, this doesn't mess up arg counting and other stuff
 
     # remove markers for ignoring all varagrs and all varkwds
     varargs_to_ignore = '*' in names_to_ignore

@@ -119,27 +119,27 @@ assert key_kwds == {'a': 1, 'y': '0', 'b': 10, 'c': '30'}
 def foo(x,y,z=2):
     return x+y+z
 
-assert foo(0,1,2) == (((), {'y': 1, 'x': NULL, 'z': 2}),)
+assert foo(0,1,2) == ('x', NULL, 'y', 1, 'z', 2)
 assert foo.valid() == True
-assert foo(10,1,2) == (((), {'y': 1, 'x': NULL, 'z': 2}),)
-assert foo(0,1) == (((), {'y': 1, 'x': NULL, 'z': 2}),)
-assert foo(0,1,3) == (((), {'y': 1, 'x': NULL, 'z': 3}),)
-assert foo(0,1,r=3) == (((), {'y': 1, 'x': NULL, 'z': 2}),)
+assert foo(10,1,2) == ('x', NULL, 'y', 1, 'z', 2)
+assert foo(0,1) == ('x', NULL, 'y', 1, 'z', 2)
+assert foo(0,1,3) ==  ('x', NULL, 'y', 1, 'z', 3)
+assert foo(0,1,r=3) == ('x', NULL, 'y', 1, 'z', 2)
 assert foo.valid() == False
-assert foo(0,1,x=1) == (((), {'y': 1, 'x': NULL, 'z': 2}),)
+assert foo(0,1,x=1) == ('x', NULL, 'y', 1, 'z', 2)
 assert foo.valid() == False
-res2 = (((), {'y': 2, 'x': NULL, 'z': 10}),)
+res2 = ('x', NULL, 'y', 2, 'z', 10)
 assert foo(10,y=2,z=10) == res2
 assert foo.valid() == True
-res1 = (((), {'y': 1, 'x': NULL, 'z': 10}),)
+res1 = ('x', NULL, 'y', 1, 'z', 10)
 assert foo(0,1,z=10) == res1
 assert foo.valid() == True
 assert foo.call() == 11
 h = hashmap(algorithm='md5')
 foo.register(h)
 if hex(sys.hexversion) < '0x30300f0':
-    _hash1 = '6df3084851976459df23e86277ba6233'
-    _hash2 = '4bce563a4168a6e452c1c404aa3bed30'
+    _hash1 = '2c8d801f4078eba873a5fb6909ab0f8d'
+    _hash2 = '949883b97d9fda9c8fe6bd468fe90af9'
 else: # python 3.3 has hash randomization, apparently
     from klepto.crypto import hash
     _hash1 = hash(res1, 'md5')

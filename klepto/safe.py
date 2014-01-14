@@ -7,6 +7,7 @@
 
 If a hashing error occurs, the cached function will be evaluated.
 """
+from __future__ import absolute_import
 from collections import deque
 from random import choice #XXX: biased?
 from heapq import nsmallest
@@ -21,6 +22,7 @@ from klepto.rounding import deep_round, simple_round
 from klepto.archives import cache as archive_dict
 from klepto.keymaps import stringmap
 from klepto.tools import CacheInfo
+from ._inspect import _keygen
 
 __all__ = ['no_cache','inf_cache','lfu_cache',\
            'lru_cache','mru_cache','rr_cache']
@@ -43,6 +45,7 @@ def no_cache(*arg, **kwd):
     rounding on inputs will be 'shallow' or 'deep'.
 
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -57,6 +60,15 @@ def no_cache(*arg, **kwd):
     and may also be ignored by some 'keymaps'.  Here, the keymap is only used
     to look up keys in an associated archive.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -66,6 +78,8 @@ def no_cache(*arg, **kwd):
 
     keymap = kwd.get('keymap', None)
     if keymap is None: keymap = stringmap(flat=False)
+    ignore = kwd.get('ignore', None)
+    if ignore is None: ignore = tuple()
     cache = archive_dict()
 
     tol = kwd.get('tol', None)
@@ -88,6 +102,7 @@ def no_cache(*arg, **kwd):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -135,6 +150,7 @@ def no_cache(*arg, **kwd):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
@@ -161,6 +177,7 @@ def inf_cache(*arg, **kwd):
 
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -174,6 +191,15 @@ def inf_cache(*arg, **kwd):
     as distinct calls with distinct results.  Cache typing has a memory penalty,
     and may also be ignored by some 'keymaps'.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -183,6 +209,8 @@ def inf_cache(*arg, **kwd):
 
     keymap = kwd.get('keymap', None)
     if keymap is None: keymap = stringmap(flat=False)
+    ignore = kwd.get('ignore', None)
+    if ignore is None: ignore = tuple()
     cache = kwd.get('cache', None)
     if cache is None: cache = archive_dict()
     elif type(cache) is dict: cache = archive_dict(cache)
@@ -208,6 +236,7 @@ def inf_cache(*arg, **kwd):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -254,6 +283,7 @@ def inf_cache(*arg, **kwd):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
@@ -267,7 +297,7 @@ def inf_cache(*arg, **kwd):
     return decorating_function
 
 
-def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
+def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
     ''''safe' version of the least-frequenty-used (LFU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -282,6 +312,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -297,6 +328,15 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     as distinct calls with distinct results.  Cache typing has a memory penalty,
     and may also be ignored by some 'keymaps'.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -305,11 +345,12 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Frequently_Used
     '''
     if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, tol=tol, deep=deep)
+        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
     if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, tol=tol, deep=deep)
+        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
 
     if keymap is None: keymap = stringmap(flat=False)
+    if ignore is None: ignore = tuple()
     if cache is None: cache = archive_dict()
     elif type(cache) is dict: cache = archive_dict(cache)
     # does archive make sense with database, file, ?... (requires more thought)
@@ -333,6 +374,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -395,6 +437,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
@@ -408,7 +451,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     return decorating_function
 
 
-def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
+def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
     ''''safe' version of the least-recently-used (LRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -423,6 +466,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -438,6 +482,15 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     as distinct calls with distinct results.  Cache typing has a memory penalty,
     and may also be ignored by some 'keymaps'.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -446,12 +499,13 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
     '''
     if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, tol=tol, deep=deep)
+        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
     if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, tol=tol, deep=deep)
+        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
     maxqueue = maxsize * 10 #XXX: user settable? confirm this works as expected
 
     if keymap is None: keymap = stringmap(flat=False)
+    if ignore is None: ignore = tuple()
     if cache is None: cache = archive_dict()
     elif type(cache) is dict: cache = archive_dict(cache)
     # does archive make sense with database, file, ?... (requires more thought)
@@ -481,6 +535,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -564,6 +619,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
@@ -577,7 +633,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     return decorating_function
 
 
-def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
+def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
     ''''safe' version of the most-recently-used (MRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -592,6 +648,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -607,6 +664,15 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     as distinct calls with distinct results.  Cache typing has a memory penalty,
     and may also be ignored by some 'keymaps'.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -615,11 +681,12 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Most_Recently_Used
     '''
     if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, tol=tol, deep=deep)
+        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
     if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, tol=tol, deep=deep)
+        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
 
     if keymap is None: keymap = stringmap(flat=False)
+    if ignore is None: ignore = tuple()
     if cache is None: cache = archive_dict()
     elif type(cache) is dict: cache = archive_dict(cache)
     # does archive make sense with database, file, ?... (requires more thought)
@@ -647,6 +714,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -708,6 +776,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
@@ -721,7 +790,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     return decorating_function
 
 
-def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
+def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
     ''''safe' version of the random-replacement (RR) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -736,6 +805,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
+    ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
 
@@ -751,6 +821,15 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     as distinct calls with distinct results.  Cache typing has a memory penalty,
     and may also be ignored by some 'keymaps'.
 
+    If *ignore* is given, the keymap will ignore the arguments with the names
+    and/or positional indicies provided. For example, if ignore=(0,), then
+    the key generated for f(1,2) will be identical to that of f(3,2) or f(4,2).
+    If ignore=('y',), then the key generated for f(x=3,y=4) will be identical
+    to that of f(x=3,y=0) or f(x=3,y=10). If ignore=('*','**'), all varargs
+    and varkwds will be 'ignored'.  Ignored arguments never trigger a
+    recalculation (they only trigger cache lookups), and thus are 'ignored'.
+    When caching class methods, it may be useful to ignore=('self',).
+
     View cache statistics (hit, miss, load, maxsize, size) with f.info().
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
@@ -759,11 +838,12 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
     http://en.wikipedia.org/wiki/Cache_algorithms#Random_Replacement
     '''
     if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, tol=tol, deep=deep)
+        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
     if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, tol=tol, deep=deep)
+        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
 
     if keymap is None: keymap = stringmap(flat=False)
+    if ignore is None: ignore = tuple()
     if cache is None: cache = archive_dict()
     elif type(cache) is dict: cache = archive_dict(cache)
     # does archive make sense with database, file, ?... (requires more thought)
@@ -786,6 +866,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
         def wrapper(*args, **kwds):
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
+                _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
             except: #TypeError
                 result = user_function(*args, **kwds)
@@ -840,6 +921,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, tol=None, deep=False):
 
         # interface
         wrapper.__wrapped__ = user_function
+        #XXX: better is handle to key_function=keygen(ignore)(user_function) ?
         wrapper.info = info
         wrapper.clear = clear
         wrapper.load = cache.load
