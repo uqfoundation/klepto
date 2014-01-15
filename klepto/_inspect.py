@@ -284,6 +284,7 @@ def keygen(*ignored):
       _args[0] = args
       _args[1] = kwds
       _map = _keymap[0]
+      #FIXME: to be correct, needs a rounding step here...
       args,kwds = _keygen(f, ignored, *args, **kwds)
       return _map(*args, **kwds)
     def call():

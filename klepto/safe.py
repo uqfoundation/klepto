@@ -136,9 +136,23 @@ def no_cache(*arg, **kwd):
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -157,7 +171,10 @@ def no_cache(*arg, **kwd):
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
@@ -268,9 +285,23 @@ def inf_cache(*arg, **kwd):
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -290,7 +321,10 @@ def inf_cache(*arg, **kwd):
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
@@ -421,9 +455,23 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -444,7 +492,10 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = use_count #XXX
         return update_wrapper(wrapper, user_function)
 
@@ -602,9 +653,23 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -626,7 +691,10 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = queue #XXX
         return update_wrapper(wrapper, user_function)
 
@@ -760,9 +828,23 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -783,7 +865,10 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = queue #XXX
         return update_wrapper(wrapper, user_function)
 
@@ -906,9 +991,23 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
             """Replace the cache archive"""
             cache.archive = obj
 
+        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+            """Get the cache key for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return keymap(*_args, **_kwds)
+
         def __get_cache():
             """Get the cache"""
             return cache
+
+        def __get_mask():
+            """Get the (ignore) mask"""
+            return ignore
+
+        def __get_keymap():
+            """Get the keymap"""
+            return keymap
 
         def clear(keepstats=False):
             """Clear the cache and statistics"""
@@ -928,7 +1027,10 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
         wrapper.dump = cache.dump
         wrapper.archive = archive
         wrapper.archived = cache.archived
+        wrapper.key = key
         wrapper.__cache__ = __get_cache
+        wrapper.__mask__ = __get_mask
+        wrapper.__map__ = __get_keymap
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
