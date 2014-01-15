@@ -251,10 +251,13 @@ def validate(func, *args, **kwds):
     return None #XXX: better return (args, kwds.copy()) ?
 
 from klepto.keymaps import keymap as kleptokeymap
-def keygen(*ignored):
+from klepto.rounding import simple_round, deep_round
+def keygen(*ignored, **kwds):
   """decorator for generating a cache key for a given function
 
   ignored: names and/or indicies of the function's arguments to 'ignore'
+  tol: integer tolerance for rounding (default is None)
+  deep: boolean for rounding depth (default is False, i.e. 'shallow')
 
   The decorator accepts integers (for the index of positional args to ignore,
   or strings (the names of the kwds to ignore). A cache key is returned,
@@ -271,12 +274,25 @@ def keygen(*ignored):
 
   The function is not evaluated until the 'call' method is called.  Both
   generating the key and checking for validity avoid calling the function
-  by inspecting the function's input signature."""
+  by inspecting the function's input signature.
+
+  The default keymap is keymaps.keymap(flat=True). Alternate keymaps can be
+  set with the 'register' method on the decorated function."""
   # returns (*varargs, **kwds) where all info in kwds except varargs
   # however, special cases (builtins, etc) return (*args, **kwds)
+  _map = kwds.get('keymap', None)
+  if _map is None: _map = kleptokeymap()
+  tol = kwds.get('tol', None)
+  deep = kwds.get('deep', False)
+  if deep: rounded = deep_round
+  else: rounded = simple_round
+  # enable rounding
+  @rounded(tol)
+  def rounded_args(*args, **kwds):
+    return (args, kwds)
   def dec(f):
     _args = [(),{}]
-    _keymap = [kleptokeymap()]
+    _keymap = [_map] #[kleptokeymap()]
     def last_args():
       "get the most recently provided (*args, **kwds)"
       return _args[0],_args[1]
@@ -284,7 +300,7 @@ def keygen(*ignored):
       _args[0] = args
       _args[1] = kwds
       _map = _keymap[0]
-      #FIXME: to be correct, needs a rounding step here...
+      args,kwds = rounded_args(*args, **kwds)
       args,kwds = _keygen(f, ignored, *args, **kwds)
       return _map(*args, **kwds)
     def call():
@@ -299,6 +315,7 @@ def keygen(*ignored):
       "get cache 'key' for most recently provided (*args, **kwds)"
       ar,kw = last_args()
       _map = _keymap[0]
+      ar,kw = rounded_args(*ar, **kw)
       ar,kw = _keygen(f, ignored, *ar, **kw) #XXX: better lookup saved key?
       return _map(*ar, **kw)
     def register(mapper):
