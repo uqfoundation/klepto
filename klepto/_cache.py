@@ -125,7 +125,7 @@ def no_cache(*arg, **kwd):
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -265,7 +265,7 @@ def inf_cache(*arg, **kwd):
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -426,7 +426,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -614,7 +614,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -779,7 +779,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -933,7 +933,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
             """Replace the cache archive"""
             cache.archive = obj
 
-        def key(*args, **kwds): #FIXME: fails for methods (multiple 'self')
+        def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
             _args, _kwds = rounded_args(*args, **kwds)
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)

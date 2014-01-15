@@ -28,18 +28,18 @@ assert plus(4,debug=True) == 4    # cached (ignore debug)
 assert plus(2,0,3) == 5
 assert plus(2,0,4) == 6
 
-info = Adder.__call__.info()
+info = add.__call__.info()
 assert info.hit == 5
 assert info.miss == 5
-cache = Adder.__call__.__cache__()
+cache = add.__call__.__cache__()
 assert sorted(cache.values()) == [2,3,4,5,6]
 
-#FIXME: apparently, doesn't work for class methods (Error: multiple 'self')
-#key = Adder.__call__.key(2,0)
-#assert cache[key] == Adder.__call__.__wrapped__(2,0)
+# careful... remember we have self as first argument
+key = add.__call__.key(add,2,0)
+assert cache[key] == add.__call__.__wrapped__(add,2,0)
+
 
 ######################################################
-
 @memoize(keymap=hasher, ignore=('self','**'))
 def _add(x, *args, **kwds):
     debug = kwds.get('debug', False)
@@ -65,17 +65,43 @@ _func = _add.__wrapped__
 key = _add.key(2,0)
 assert _cache[key] == _func(2,0)
 
-# look-up the key another way...
+# look-up the key again, doing a little more work...
 from klepto import keygen
 lookup = keygen('self','**')(_func)
 lookup.register(hasher)
 key = lookup(2,0)
 assert _cache[key] == _func(2,0)
 
-# play with lookup a bit
+# since we have the 'key lookup', let's play with lookup a bit
 assert lookup.valid()
 assert lookup.call() == _func(2,0)
 
 
-# EOF
+######################################################
+# more of the same...
+from klepto import inf_cache
 
+class Foo(object):
+  @keygen('self')
+  def bar(self, x,y):
+    return x+y
+
+fu = Foo()
+assert fu.bar(1,2) == ('x', 1, 'y', 2)
+assert Foo.bar(fu,1,2) == ('x', 1, 'y', 2)
+
+class _Foo(object):
+  @inf_cache(ignore='self')
+  def bar(self, x,y):
+    return x+y
+
+_fu = _Foo()
+_fu.bar(1,2)
+_fu.bar(2,2)
+_fu.bar(2,3)
+_fu.bar(1,2)
+assert len(_fu.bar.__cache__()) == 3
+assert _fu.bar.__cache__()[_fu.bar.key(_fu,1,2)] == 3
+
+
+# EOF
