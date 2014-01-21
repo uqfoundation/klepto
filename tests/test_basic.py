@@ -65,6 +65,7 @@ if __name__ == '__main__':
     da = dict_archive
     fa = file_archive
     db = sql_archive
+    dr = dir_archive
     caches = [
       cache(archive=na(), **init),
       cache(archive=da(), **init),
@@ -72,6 +73,11 @@ if __name__ == '__main__':
       cache(archive=fa(filename=None,serialized=False), **init),
       cache(archive=fa(filename='xxxx.pkl',serialized=True), **init),
       cache(archive=fa(filename='xxxx.py',serialized=False), **init),
+     #cache(archive=dr(dirname='imemo',serialized=False), **init),
+     #cache(archive=dr(dirname='pmemo',serialized=True), **init),
+     #cache(archive=dr(dirname='jmemo',serialized=True,fast=True), **init),
+     #cache(archive=dr(dirname='zmemo',serialized=True,compression=1), **init),
+     #cache(archive=dr(dirname='mmemo',serialized=True,memmode='r+'), **init),
      #cache(archive=db(database=None,table=None), **init), 
      #cache(archive=db(database='memo.db',table=None), **init), 
      #cache(archive=db(database=None,table='memo'), **init), 

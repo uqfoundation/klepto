@@ -44,6 +44,7 @@ Klepto has standard and 'safe' variants of the following::
 Klepto has the following archive types::
 
 * 'file_archive' - a dictionary-style interface to a file
+* 'dir_archive' - a dictionary-style interface to a folder of files
 * 'sql_archive' - a dictionary-style interface to a sql database
 * 'dict_archive' - a dictionary with an archive interface
 * 'null_archive' - a dictionary-style interface to a dummy archive 
@@ -51,13 +52,14 @@ Klepto has the following archive types::
 Klepto provides the following keymaps::
 
 * 'keymap' - keys are raw python objects
-* 'hashmap' - keys are the hash for the python object
-* 'stringmap' - keys are the `__repr__` for the python object
+* 'hashmap' - keys are a hash for the python object
+* 'stringmap' - keys are the python object cast as a string
 * 'picklemap' - keys are the serialized python object
 
 Klepto also includes a few useful decorators providing::
 
-* simple, shallow, or deep rounding
+* simple, shallow, or deep rounding of function arguments
+* cryptographic key generation, with masking of selected arguments
 
 Current Release
 ---------------

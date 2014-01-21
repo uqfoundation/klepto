@@ -3,6 +3,9 @@
 custom caching dict, which archives results to memory, file, or database
 """
 from __future__ import absolute_import
+import os
+import sys
+from random import random
 try:
   from sqlalchemy import create_engine, delete, select, Column, MetaData, Table
   from sqlalchemy.types import PickleType, String, Text#, BLOB
@@ -10,8 +13,16 @@ try:
 except ImportError:
   __alchemy = False
 import dill
+from pox import mkdir, rmtree, walk, likely_import
+from .crypto import hash
+from . import _pickle
 
-__all__ = ['cache','dict_archive','null_archive','file_archive','sql_archive']
+__all__ = ['cache','dict_archive','null_archive',\
+           'dir_archive','file_archive','sql_archive']
+
+PREFIX = "K_"  # hash needs to be importable
+TEMP = "I_"    # indicates 'temporary' file
+#DEAD = "D_"    # indicates 'deleted' key
 
 class cache(dict):
     """dictionary augmented with an archive backend"""
@@ -114,6 +125,231 @@ class null_archive(dict):
     pass
 
 
+class dir_archive(dict):
+    """dictionary-style interface to a folder of files"""
+    def __init__(self, dirname=None, serialized=True, compression=0, **kwds):
+        """initialize a file folder with a synchronized dictionary interface
+
+    Inputs:
+        dirname: name of the root archive directory [default: memo]
+        serialized: if True, pickle file contents; otherwise save python objects
+        compression: compression level (0 to 9) [default: 0 (no compression)]
+        memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
+        memsize: approximate size (in MB) of cache for in-memory compression
+        """
+        #XXX: if compression or mode is given, use joblib-style pickling
+        #     (ignoring 'serialized'); else if serialized, use dill unless
+        #     fast=True (then use joblib-style pickling). If not serialized,
+        #     then write raw objects and load objects with import.
+        """dirname = full filepath"""
+        if dirname is None: #FIXME: default root as /tmp or something better
+            dirname = 'memo' #FIXME: need better default
+        # undocumented: set file permissions (takes an octal)
+        self._perm = kwds.get('permissions', None)
+        # undocumented: True=joblib-style, False=dill-style pickling
+        self._fast = kwds.get('fast', False)
+        #
+        self._serialized = serialized
+        self._compression = compression
+        self._mode = kwds.get('memmode', None)
+        self._size = kwds.get('memsize', 100)
+        # if not serialized, then set fast=False
+        if not self._serialized:
+            self._compression = 0
+            self._mode = None
+            self._fast = False
+        # if compression or mode, then set fast=True
+        elif self._compression or self._mode:
+            self._fast = True
+        # ELSE: use dill if fast=False, else use _pickle
+
+        try:
+            self._root = mkdir(dirname, mode=self._perm)
+        except OSError: # then directory already exists
+            self._root = os.path.abspath(dirname)
+        return
+    def __asdict__(self):
+        """build a dictionary containing the archive contents"""
+        # get the names of all directories in the directory
+        keys = self._keydict()
+        # get the values
+        return dict((key,self.__getitem__(key)) for key in keys)
+    #FIXME: missing a bunch of __...__
+    def __getitem__(self, key):
+        _dir = self._getdir(key)
+        if self._serialized:
+            _file = os.path.join(_dir, self._file)
+            try:
+                if self._fast: #XXX: enable override of self._mode ?
+                    memo = _pickle.load(_file, mmap_mode=self._mode)
+                else:
+                    f = open(_file, 'rb')
+                    memo = dill.load(f)
+                    f.close()
+            except: #XXX: should only catch the appropriate exceptions
+                memo = None
+                raise OSError("error reading directory for '%s'" % key)
+        else:
+            import tempfile
+            base = os.path.basename(_dir) #XXX: PREFIX+key
+            root = os.path.realpath(self._root)
+            curdir = os.path.realpath(os.curdir)
+            name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
+            os.chdir(root)
+            string = "from %s import memo as %s; sys.modules.pop('%s')" % (base, name, base)
+            try:
+                sys.path.insert(0, os.curdir)
+                exec(string, globals()) #FIXME: unsafe, potential name conflict
+                memo = globals().get(name)# None) #XXX: error if not found?
+                globals().pop(name, None)
+            except: #XXX: should only catch the appropriate exceptions
+                raise OSError("error reading directory for '%s'" % key)
+            finally:
+                sys.path.remove(os.curdir)
+                os.chdir(curdir)
+        return memo
+    __getitem__.__doc__ = dict.__getitem__.__doc__
+    def __repr__(self):
+        name = os.path.basename(self._root)
+        return "archive(%s: %s)" % (name, self.__asdict__())
+    __repr__.__doc__ = dict.__repr__.__doc__
+    def __setitem__(self, key, value):
+        _key = TEMP+hash(random(), 'md5')
+        # create a temporary directory, and dump the results
+        try:
+            _file = os.path.join(self._mkdir(_key), self._file)
+            if self._serialized:
+                if self._fast:
+                    _pickle.dump(value, _file, compress=self._compression)
+                else:
+                    f = open(_file, 'wb')
+                    dill.dump(value, f)  #XXX: byref=True ?
+                    f.close()
+            else:
+                try: helper = likely_import(value) + "; "
+                except: helper = ''
+                from .tools import _b
+                open(_file, 'wb').write(_b(helper+'memo = %s' % repr(value)))
+        except OSError:
+            "failed to populate directory for '%s'" % key
+        # move the results to the proper place
+        try: #XXX: possible permissions issues here
+            self._rmdir(key)
+            os.renames(self._getdir(_key), self._getdir(key))
+        except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
+            "error in populating directory for '%s'" % key
+    __setitem__.__doc__ = dict.__setitem__.__doc__
+    def clear(self):
+        rmtree(self._root, self=False, ignore_errors=True)
+        return
+    clear.__doc__ = dict.clear.__doc__
+    #FIXME: copy, fromkeys
+    def get(self, key, value=None):
+        try:
+            return self.__getitem__(key)
+        except:
+            return value
+    get.__doc__ = dict.get.__doc__
+    if getattr(dict, 'has_key', None):
+        def has_key(self, key):
+            _dir = self._getdir(key)
+            return os.path.exists(_dir)
+        has_key.__doc__ = dict.has_key.__doc__
+        def __iter__(self):
+            return self._keydict().iterkeys()
+        def iteritems(self):#FIXME: should be dictionary-itemiterator instance
+            keys = self._keydict()
+            return ((key,self.__getitem__(key)) for key in keys)
+        iteritems.__doc__ = dict.iteritems.__doc__
+        iterkeys = __iter__
+        def itervalues(self):#FIXME: should be dictionary-valueiterator instance
+            keys = self._keydict()
+            return (self.__getitem__(key) for key in keys)
+        itervalues.__doc__ = dict.itervalues.__doc__
+    else:
+        def __iter__(self):
+            return self._keydict().keys()
+    __iter__.__doc__ = dict.__iter__.__doc__
+    def keys(self):
+        return self._keydict().keys()
+    keys.__doc__ = dict.keys.__doc__
+    def items(self): #FIXME: should be dict_items instance
+        keys = self._keydict()
+        keys = ((key,self.__getitem__(key)) for key in keys)
+        if sys.version_info[0] < 3:
+            return list(keys)
+        else: return keys
+    items.__doc__ = dict.items.__doc__
+    def values(self): #FIXME: should be dict_values instance
+        keys = self._keydict()
+        keys = (self.__getitem__(key) for key in keys)
+        if sys.version_info[0] < 3:
+            return list(keys)
+        else: return keys
+    values.__doc__ = dict.values.__doc__
+    def pop(self, key, *value): #XXX: or make DEAD ?
+        try:
+            memo = {key: self.__getitem__(key)}
+            self._rmdir(key)
+        except:
+            memo = {}
+        res = memo.pop(key, *value)
+        return res
+    pop.__doc__ = dict.pop.__doc__
+    #FIXME: popitem
+    def setdefault(self, key, *value):
+        res = self.get(key, *value)
+        self.__setitem__(key, res)
+        return res
+    setdefault.__doc__ = dict.setdefault.__doc__
+    def update(self, adict, **kwds):
+        memo = {}
+        memo.update(adict, **kwds) #XXX: could be better ?
+        for (key,val) in memo.items():
+            self.__setitem__(key,val)
+        return
+    update.__doc__ = dict.update.__doc__
+    #FIXME: viewitems, viewkeys, viewvalues
+    def __len__(self):
+        return len(self._lsdir())
+    def __contains__(self, key):
+        return self.has_key(key)
+
+    def _mkdir(self, key):
+        "create results subdirectory corresponding to given key"
+        try:
+            return mkdir(PREFIX+key, root=self._root, mode=self._perm)
+        except OSError: # then directory already exists
+            return self._getdir(key)
+
+    def _getdir(self, key):
+        "get results directory name corresponding to given key"
+        return os.path.join(self._root, PREFIX+key)
+
+    def _rmdir(self, key):
+        "remove results subdirectory corresponding to given key"
+        rmtree(self._getdir(key), self=True, ignore_errors=True)
+        return
+    def _lsdir(self):
+        "get a list of subdirectories in the root directory"
+        return walk(self._root,patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
+    def _keydict(self):
+        "get a dict of subdirectories in the rood directory, with dummy values"
+        base = os.path.basename
+        keys = self._lsdir()
+        return dict((base(key)[2:],None) for key in keys)
+
+    def _get_file(self):
+        if self._serialized: return 'output.pkl'
+        return '__init__.py'
+    def _set_file(self, file):
+        raise NotImplementedError("cannot set attribute '_file'")
+
+    # interface
+    _file = property(_get_file, _set_file)
+    pass
+
+
 class file_archive(dict):
     """dictionary-style interface to a file"""
     def __init__(self, filename=None, serialized=True): # False
@@ -123,7 +359,6 @@ class file_archive(dict):
         serialized: if True, pickle file contents; otherwise save python objects
         filename: name of the file backend [default: memo.pkl or memo.py]
         """
-        import os
         """filename = full filepath"""
         if filename is None:
             if serialized: filename = 'memo.pkl' #FIXME: need better default
@@ -142,8 +377,8 @@ class file_archive(dict):
                 f.close()
             except:
                 memo = {}
+               #raise OSError("error reading file archive %s" % self._filename)
         else:
-            import os
             import tempfile
             file = os.path.basename(self._filename)
             root = os.path.realpath(self._filename).rstrip(file)[:-1]
@@ -151,26 +386,41 @@ class file_archive(dict):
             file = file.rstrip('.py') or file.rstrip('.pyc') \
                 or file.rstrip('.pyo') or file.rstrip('.pyd')
             name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
-            string = 'from %s import memo as %s' % (file, name)
             os.chdir(root)
-            exec(string, globals()) #FIXME: unsafe, and potential name conflict
-            memo = globals().get(name, {}) #XXX: or throw error if not found ?
-            globals().pop(name, None)
-            os.chdir(curdir)
+            string = "from %s import memo as %s; sys.modules.pop('%s')" % (file, name, file)
+            try:
+                exec(string, globals()) #FIXME: unsafe, potential name conflict
+                memo = globals().get(name, {}) #XXX: error if not found ?
+                globals().pop(name, None)
+            except: #XXX: should only catch appropriate exceptions
+                memo = {}
+               #raise OSError("error reading file archive %s" % self._filename)
+            finally:
+                os.chdir(curdir)
         return memo
     def __save__(self, memo=None):
         """create an archive from the given dictionary"""
         if memo == None: return
-        if self._serialized:
-            try:
-                f = open(self._filename, 'wb')
+        _filename = TEMP+hash(random(), 'md5')
+        # create a temporary file, and dump the results
+        try:
+            if self._serialized:
+                f = open(_filename, 'wb')
                 dill.dump(memo, f)  #XXX: byref=True ?
                 f.close()
-            except:
-                pass  #XXX: warning? fail?
-        else:
-            from .tools import _b
-            open(self._filename, 'wb').write(_b('memo = %s' % memo))
+            else: #XXX: likely_import for each item in dict... ?
+                from .tools import _b
+                open(_filename, 'wb').write(_b('memo = %s' % repr(memo)))
+        except OSError:
+            "failed to populate file for %s" % self._filename
+        # move the results to the proper place
+        try:
+            os.remove(self._filename)
+        except: pass
+        try:
+            os.renames(_filename, self._filename)
+        except OSError:
+            "error in populating %s" % self._filename
         return
     #FIXME: missing a bunch of __...__
     def __getitem__(self, key):
@@ -342,7 +592,6 @@ if __alchemy:
               if self._database.startswith('postgres'):
                   conn.connection.connection.set_isolation_level(1)
           except Exception:
-              import os
               dbpath = self._database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
@@ -536,7 +785,6 @@ else:
               conn = db.connect(':memory:')
               conn.execute("DROP DATABASE %s;" % dbname) #FIXME: always fails
           except Exception:
-              import os
               dbpath = self._database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)

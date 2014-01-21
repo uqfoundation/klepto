@@ -90,6 +90,7 @@ Klepto has standard and 'safe' variants of the following::
 Klepto has the following archive types::
 
     - 'file_archive' - a dictionary-style interface to a file
+    - 'dir_archive' - a dictionary-style interface to a folder of files
     - 'sql_archive' - a dictionary-style interface to a sql database
     - 'dict_archive' - a dictionary with an archive interface
     - 'null_archive' - a dictionary-style interface to a dummy archive 
@@ -97,13 +98,14 @@ Klepto has the following archive types::
 Klepto provides the following keymaps::
 
     - 'keymap' - keys are raw python objects
-    - 'hashmap' - keys are the hash for the python object
-    - 'stringmap' - keys are the __repr__ for the python object
+    - 'hashmap' - keys are a hash for the python object
+    - 'stringmap' - keys are the python object cast as a string
     - 'picklemap' - keys are the serialized python object
 
 Klepto also includes a few useful decorators providing::
 
-    - simple, shallow, or deep rounding
+    - simple, shallow, or deep rounding of function arguments
+    - cryptographic key generation, with masking of selected arguments
 
 
 Current Release
@@ -157,6 +159,7 @@ Klepto requires::
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
     - dill, version >= 0.2b2.dev
+    - pox, version >= 0.2a1.dev
 
 Optional requirements::
 
@@ -246,14 +249,15 @@ setup(name='klepto',
 
 # add dependencies
 dill_version = '>=0.2b2.dev'
+pox_version = '>=0.2a1.dev'
 sqlalchemy_version = '>=0.8.4'
 import sys
 if has_setuptools:
     setup_code += """
       zip_safe=False,
       dependency_links = ['http://dev.danse.us/packages/'],
-      install_requires = ['dill%s'],
-""" % (dill_version)
+      install_requires = ['dill%s','pox%s'],
+""" % (dill_version, pox_version)
 
 # add the scripts, and close 'setup' call
 setup_code += """
@@ -266,11 +270,13 @@ exec(setup_code)
 # if dependencies are missing, print a warning
 try:
     import dill
+    import pox
     import sqlalchemy
 except ImportError:
     print ("\n***********************************************************")
     print ("WARNING: One of the following dependencies is unresolved:")
     print ("    dill %s" % dill_version)
+    print ("    pox %s" % pox_version)
     print ("    sqlalchemy %s" % sqlalchemy_version)
     print ("***********************************************************\n")
 
