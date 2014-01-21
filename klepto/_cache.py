@@ -131,6 +131,12 @@ def no_cache(*arg, **kwd):
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -161,6 +167,7 @@ def no_cache(*arg, **kwd):
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap
@@ -271,6 +278,12 @@ def inf_cache(*arg, **kwd):
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -302,6 +315,7 @@ def inf_cache(*arg, **kwd):
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap
@@ -432,6 +446,12 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -464,6 +484,7 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap
@@ -620,6 +641,12 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -653,6 +680,7 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap
@@ -785,6 +813,12 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -817,6 +851,7 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap
@@ -939,6 +974,12 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
             _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
             return keymap(*_args, **_kwds)
 
+        def lookup(*args, **kwds):
+            """Get the stored value for the given *args,**kwds"""
+            _args, _kwds = rounded_args(*args, **kwds)
+            _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
+            return cache[keymap(*_args, **_kwds)]
+
         def __get_cache():
             """Get the cache"""
             return cache
@@ -970,6 +1011,7 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
         wrapper.archive = archive
         wrapper.archived = cache.archived
         wrapper.key = key
+        wrapper.lookup = lookup
         wrapper.__cache__ = __get_cache
         wrapper.__mask__ = __get_mask
         wrapper.__map__ = __get_keymap

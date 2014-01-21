@@ -37,6 +37,7 @@ assert sorted(cache.values()) == [2,3,4,5,6]
 # careful... remember we have self as first argument
 key = add.__call__.key(add,2,0)
 assert cache[key] == add.__call__.__wrapped__(add,2,0)
+assert cache[key] == add.__call__.lookup(add,2,0)
 
 
 ######################################################
@@ -60,6 +61,9 @@ _add(2,0,4)
 
 _cache =  _add.__cache__()
 _func = _add.__wrapped__
+
+# do a lookup
+assert _add.lookup(2,0) == _func(2,0)
 
 # generate the key, and do a look-up
 key = _add.key(2,0)
@@ -102,6 +106,7 @@ _fu.bar(2,3)
 _fu.bar(1,2)
 assert len(_fu.bar.__cache__()) == 3
 assert _fu.bar.__cache__()[_fu.bar.key(_fu,1,2)] == 3
+assert _fu.bar.lookup(_fu,1,2) == 3
 
 
 # EOF
