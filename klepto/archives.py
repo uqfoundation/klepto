@@ -193,20 +193,17 @@ class dir_archive(dict):
             import tempfile
             base = os.path.basename(_dir) #XXX: PREFIX+key
             root = os.path.realpath(self._root)
-            curdir = os.path.realpath(os.curdir)
             name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
-            os.chdir(root)
             string = "from %s import memo as %s; sys.modules.pop('%s')" % (base, name, base)
             try:
-                sys.path.insert(0, os.curdir)
+                sys.path.insert(0, root)
                 exec(string, globals()) #FIXME: unsafe, potential name conflict
                 memo = globals().get(name)# None) #XXX: error if not found?
                 globals().pop(name, None)
             except: #XXX: should only catch the appropriate exceptions
                 raise OSError("error reading directory for '%s'" % key)
             finally:
-                sys.path.remove(os.curdir)
-                os.chdir(curdir)
+                sys.path.remove(root)
         return memo
     __getitem__.__doc__ = dict.__getitem__.__doc__
     def __repr__(self):
@@ -225,11 +222,31 @@ class dir_archive(dict):
                     f = open(_file, 'wb')
                     dill.dump(value, f)  #XXX: byref=True ?
                     f.close()
-            else:
+            else: #XXX: some wild HACKERY here...
+                # try to get an import for the object
                 try: helper = likely_import(value) + "; "
                 except: helper = ''
+                # things with default __repr__ should fail; try to not fail...
+                memo = None
+                if repr(value).startswith('<'):
+                    # get the name (of functions and classes)
+                    try:
+                        _value = value.__name__
+                        if _value.startswith('<'): raise # probably a lambda
+                        value = _value
+                    except:
+                        # try to get the source for lambdas and such
+                        try: memo = dill.source.getsource(value, alias='memo')
+                        except AttributeError: pass
+                    #FIXME: what to do about class instances and such?
+                # hope that it can be built from the __repr__
+                else: value = repr(value)
+                # if we got the source, just use it
+                if memo: memo = helper+memo
+                # otherwise, try from __repr__ or __name__
+                else: memo = helper+'memo = %s\n' % value
                 from .tools import _b
-                open(_file, 'wb').write(_b(helper+'memo = %s' % repr(value)))
+                open(_file, 'wb').write(_b(memo))
         except OSError:
             "failed to populate directory for '%s'" % key
         # move the results to the proper place
