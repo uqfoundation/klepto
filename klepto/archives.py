@@ -188,7 +188,8 @@ class dir_archive(dict):
                     f.close()
             except: #XXX: should only catch the appropriate exceptions
                 memo = None
-                raise OSError("error reading directory for '%s'" % key)
+                raise KeyError(key)
+               #raise OSError("error reading directory for '%s'" % key)
         else:
             import tempfile
             base = os.path.basename(_dir) #XXX: PREFIX+key
@@ -201,7 +202,8 @@ class dir_archive(dict):
                 memo = globals().get(name)# None) #XXX: error if not found?
                 globals().pop(name, None)
             except: #XXX: should only catch the appropriate exceptions
-                raise OSError("error reading directory for '%s'" % key)
+                raise KeyError(key)
+               #raise OSError("error reading directory for '%s'" % key)
             finally:
                 sys.path.remove(root)
         return memo
