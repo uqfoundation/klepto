@@ -20,6 +20,7 @@ def _test_cache(cache, keymap=None, maxsize=50, rangelimit=10, tries=N):
 
 def _cleanup():
     import os
+    import pox
     try: os.remove('memo.pkl')
     except: pass
     try: os.remove('xxxx.pkl')
@@ -41,6 +42,16 @@ def _cleanup():
     try: os.remove('xxxx.pyd')
     except: pass
     try: os.remove('memo.db')
+    except: pass
+    try: pox.rmtree('memoi')
+    except: pass
+    try: pox.rmtree('memoj')
+    except: pass
+    try: pox.rmtree('memom')
+    except: pass
+    try: pox.rmtree('memop')
+    except: pass
+    try: pox.rmtree('memoz')
     except: pass
     return
 
@@ -73,11 +84,11 @@ if __name__ == '__main__':
       cache(archive=fa(filename=None,serialized=False), **init),
       cache(archive=fa(filename='xxxx.pkl',serialized=True), **init),
       cache(archive=fa(filename='xxxx.py',serialized=False), **init),
-     #cache(archive=dr(dirname='imemo',serialized=False), **init),
-     #cache(archive=dr(dirname='pmemo',serialized=True), **init),
-     #cache(archive=dr(dirname='jmemo',serialized=True,fast=True), **init),
-     #cache(archive=dr(dirname='zmemo',serialized=True,compression=1), **init),
-     #cache(archive=dr(dirname='mmemo',serialized=True,memmode='r+'), **init),
+      cache(archive=dr(dirname='memoi',serialized=False), **init),
+      cache(archive=dr(dirname='memop',serialized=True), **init),
+      cache(archive=dr(dirname='memoj',serialized=True,fast=True), **init),
+      cache(archive=dr(dirname='memoz',serialized=True,compression=1), **init),
+      cache(archive=dr(dirname='memom',serialized=True,memmode='r+'), **init),
      #cache(archive=db(database=None,table=None), **init), 
      #cache(archive=db(database='memo.db',table=None), **init), 
      #cache(archive=db(database=None,table='memo'), **init), 

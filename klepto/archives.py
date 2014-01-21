@@ -336,6 +336,7 @@ class dir_archive(dict):
 
     def _mkdir(self, key):
         "create results subdirectory corresponding to given key"
+        key = str(key) # enable non-strings, however 1=='1' #XXX: better repr?
         try:
             return mkdir(PREFIX+key, root=self._root, mode=self._perm)
         except OSError: # then directory already exists
@@ -343,6 +344,7 @@ class dir_archive(dict):
 
     def _getdir(self, key):
         "get results directory name corresponding to given key"
+        key = str(key) # enable non-strings, however 1=='1' #XXX: better repr?
         return os.path.join(self._root, PREFIX+key)
 
     def _rmdir(self, key):
