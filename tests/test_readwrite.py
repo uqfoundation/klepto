@@ -97,8 +97,7 @@ def check_numpy(archive):
     assert d['d'](x) == np.ptp(x)
     return
 
-# FIXME: test what happens for non-string keys (e.g. d[1234] = 'hello')
-#        hint: PREFIX+key fails due to 'str'+'int'
+# XXX: tests for non-string keys (e.g. d[1234] = 'hello')
 
 # try some of the different __init__
 archive = dir_archive()
