@@ -26,7 +26,9 @@ TEMP = "I_"    # indicates 'temporary' file
 
 def _import(obj, alias='memo'): #XXX: some wild HACKERY here...
     """try to get a suitable import for the given object"""
-    try: helper = likely_import(obj) + "; "
+    try:
+        helper = likely_import(obj)
+        if helper: helper += "; "
     except: helper = ''
    #print('helper: %s' % helper)
     # things with default __repr__ should fail; try to not fail...

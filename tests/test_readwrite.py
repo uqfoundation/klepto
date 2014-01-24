@@ -72,10 +72,12 @@ def check_basic(archive):
     d['c'] = min
     squared = lambda x:x**2
     d['d'] = squared
+    d['e'] = None
     assert d['a'] == 1
     assert d['b'] == '1'
     assert d['c'] == min
     assert d['d'](2) == squared(2)
+    assert d['e'] == None
     return
 
 # check archiving numpy stuff
@@ -87,14 +89,17 @@ def check_numpy(archive):
     d = archive
     x = np.array([1,2,3,4,5])
     y = np.arange(1000)
+    t = np.dtype([('int',np.int),('float32',np.float32)])
     d['a'] = x
     d['b'] = y
     d['c'] = np.inf
     d['d'] = np.ptp
+    d['e'] = t
     assert all(d['a'] == x)
     assert all(d['b'] == y)
     assert d['c'] == np.inf
     assert d['d'](x) == np.ptp(x)
+    assert d['e'] == t
     return
 
 # XXX: tests for non-string keys (e.g. d[1234] = 'hello')
