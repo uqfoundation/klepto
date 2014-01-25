@@ -102,7 +102,8 @@ def check_numpy(archive):
     assert d['e'] == t
     return
 
-# XXX: tests for non-string keys (e.g. d[1234] = 'hello')
+# FIXME: add tests for classes and class instances as values
+# FIXME: add tests for non-string keys (e.g. d[1234] = 'hello')
 
 # try some of the different __init__
 archive = dir_archive()
