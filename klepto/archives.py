@@ -13,7 +13,8 @@ try:
 except ImportError:
   __alchemy = False
 import dill
-from pox import mkdir, rmtree, walk, likely_import
+from dill.source import getimportable
+from pox import mkdir, rmtree, walk
 from .crypto import hash
 from . import _pickle
 
@@ -23,36 +24,6 @@ __all__ = ['cache','dict_archive','null_archive',\
 PREFIX = "K_"  # hash needs to be importable
 TEMP = "I_"    # indicates 'temporary' file
 #DEAD = "D_"    # indicates 'deleted' key
-
-def _import(obj, alias='memo'): #XXX: some wild HACKERY here...
-    """try to get a suitable import for the given object"""
-    try:
-        helper = likely_import(obj)
-        if helper: helper += "; "
-    except: helper = ''
-   #print('helper: %s' % helper)
-    # things with default __repr__ should fail; try to not fail...
-    memo = None
-    if repr(obj).startswith('<'):
-        try: # get the name (of functions and classes)
-            _obj = obj.__name__ #XXX: dill.source.getname(obj) ?
-            if _obj.startswith('<'): raise # probably a lambda
-            if '__main__' in helper: # we *choose* to use getsource
-                helper = ''; raise # and don't import from __main__
-            obj = _obj
-        except:
-            try: # try to get the source for lambdas and such
-                memo = dill.source.getsource(obj, alias=alias)
-            except AttributeError: pass
-        #FIXME: what to do about class instances and such?
-    # hope that it can be built from the __repr__
-    else: obj = repr(obj)
-    # if we got the source, just use it
-    if memo: pass # no need for helper  (was:  memo = helper+memo)
-    # otherwise, try from __repr__ or __name__
-    else: memo = helper+'%s = %s\n' % (alias,obj)
-   #print(memo)
-    return memo
 
 
 class cache(dict):
@@ -256,7 +227,11 @@ class dir_archive(dict):
                     dill.dump(value, f)  #XXX: byref=True ?
                     f.close()
             else: # try to get an import for the object
-                memo = _import(value, alias='memo')
+                try:
+                    memo = getimportable(value, alias='memo', byname=False)
+                except AttributeError: #XXX: HACKY... get classes by name
+                    memo = getimportable(value, alias='memo')
+                #XXX: instances of classes and such fail... abuse pickle here?
                 from .tools import _b
                 open(_file, 'wb').write(_b(memo))
         except OSError:
