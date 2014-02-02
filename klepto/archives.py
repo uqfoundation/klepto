@@ -7,6 +7,11 @@ import os
 import sys
 from random import random
 try:
+  from collections import KeysView, ValuesView, ItemsView
+  _view = True if sys.version_info[0] < 3 else False # True if 2.7
+except ImportError:
+  _view = False
+try:
   from sqlalchemy import create_engine, delete, select, Column, MetaData, Table
   from sqlalchemy.types import PickleType, String, Text#, BLOB
   __alchemy = True
@@ -254,43 +259,56 @@ class dir_archive(dict):
         except:
             return value
     get.__doc__ = dict.get.__doc__
+    def __contains__(self, key):
+        _dir = self._getdir(key)
+        return os.path.exists(_dir)
+    __contains__.__doc__ = dict.__contains__.__doc__
     if getattr(dict, 'has_key', None):
-        def has_key(self, key):
-            _dir = self._getdir(key)
-            return os.path.exists(_dir)
+        has_key = __contains__
         has_key.__doc__ = dict.has_key.__doc__
         def __iter__(self):
             return self._keydict().iterkeys()
-        def iteritems(self):#FIXME: should be dictionary-itemiterator instance
+        def iteritems(self):#FIXME: should be dictionary-itemiterator
             keys = self._keydict()
             return ((key,self.__getitem__(key)) for key in keys)
         iteritems.__doc__ = dict.iteritems.__doc__
         iterkeys = __iter__
-        def itervalues(self):#FIXME: should be dictionary-valueiterator instance
+        iterkeys.__doc__ = dict.iterkeys.__doc__
+        def itervalues(self):#FIXME: should be dictionary-valueiterator
             keys = self._keydict()
             return (self.__getitem__(key) for key in keys)
         itervalues.__doc__ = dict.itervalues.__doc__
     else:
         def __iter__(self):
-            return self._keydict().keys()
+            return iter(self._keydict().keys())
     __iter__.__doc__ = dict.__iter__.__doc__
     def keys(self):
-        return self._keydict().keys()
+        if sys.version_info[0] < 3:
+            return self._keydict().keys()
+        else: return KeysView(self) #FIXME: show keys not dict
     keys.__doc__ = dict.keys.__doc__
-    def items(self): #FIXME: should be dict_items instance
-        keys = self._keydict()
-        keys = ((key,self.__getitem__(key)) for key in keys)
+    def items(self):
         if sys.version_info[0] < 3:
-            return list(keys)
-        else: return keys
+            keys = self._keydict()
+            return [(key,self.__getitem__(key)) for key in keys]
+        else: return ItemsView(self) #FIXME: show items not dict
     items.__doc__ = dict.items.__doc__
-    def values(self): #FIXME: should be dict_values instance
-        keys = self._keydict()
-        keys = (self.__getitem__(key) for key in keys)
+    def values(self):
         if sys.version_info[0] < 3:
-            return list(keys)
-        else: return keys
+            keys = self._keydict()
+            return [self.__getitem__(key) for key in keys]
+        else: return ValuesView(self) #FIXME: show values not dict
     values.__doc__ = dict.values.__doc__
+    if _view:
+        def viewkeys(self):
+            return KeysView(self) #FIXME: show keys not dict
+        viewkeys.__doc__ = dict.viewkeys.__doc__
+        def viewvalues(self):
+            return ValuesView(self) #FIXME: show values not dict
+        viewvalues.__doc__ = dict.viewvalues.__doc__
+        def viewitems(self):
+            return ItemsView(self) #FIXME: show items not dict
+        viewitems.__doc__ = dict.viewitems.__doc__
     def pop(self, key, *value): #XXX: or make DEAD ?
         try:
             memo = {key: self.__getitem__(key)}
@@ -311,18 +329,15 @@ class dir_archive(dict):
         self.__setitem__(key, res)
         return res
     setdefault.__doc__ = dict.setdefault.__doc__
-    def update(self, adict, **kwds):
+    def update(self, adict, **kwds): #FIXME: fails if adict is archive
         memo = {}
         memo.update(adict, **kwds) #XXX: could be better ?
         for (key,val) in memo.items():
             self.__setitem__(key,val)
         return
     update.__doc__ = dict.update.__doc__
-    #FIXME: viewitems, viewkeys, viewvalues
     def __len__(self):
         return len(self._lsdir())
-    def __contains__(self, key):
-        return self.has_key(key)
 
     def _mkdir(self, key):
         "create results subdirectory corresponding to given key"
@@ -345,7 +360,7 @@ class dir_archive(dict):
         "get a list of subdirectories in the root directory"
         return walk(self._root,patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
     def _keydict(self):
-        "get a dict of subdirectories in the rood directory, with dummy values"
+        "get a dict of subdirectories in the root directory, with dummy values"
         base = os.path.basename
         keys = self._lsdir()
         return dict((base(key)[2:],None) for key in keys)
@@ -456,9 +471,11 @@ class file_archive(dict):
         memo = self.__asdict__()
         return memo.get(key, value)
     get.__doc__ = dict.get.__doc__
+    def __contains__(self, key):
+        return key in self.__asdict__()
+    __contains__.__doc__ = dict.__contains__.__doc__
     if getattr(dict, 'has_key', None):
-        def has_key(self, key):
-            return key in self.__asdict__()
+        has_key = __contains__
         has_key.__doc__ = dict.has_key.__doc__
         def __iter__(self):
             return self.__asdict__().iterkeys()
@@ -466,22 +483,39 @@ class file_archive(dict):
             return self.__asdict__().iteritems()
         iteritems.__doc__ = dict.iteritems.__doc__
         iterkeys = __iter__
+        iterkeys.__doc__ = dict.iterkeys.__doc__
         def itervalues(self):
             return self.__asdict__().itervalues()
         itervalues.__doc__ = dict.itervalues.__doc__
     else:
         def __iter__(self):
-            return self.__asdict__().keys()
+            return iter(self.__asdict__().keys())
     __iter__.__doc__ = dict.__iter__.__doc__
     def keys(self):
-        return self.__asdict__().keys()
+        if sys.version_info[0] < 3:
+            return self.__asdict__().keys()
+        else: return KeysView(self) #FIXME: show keys not dict
     keys.__doc__ = dict.keys.__doc__
     def items(self):
-        return self.__asdict__().items()
+        if sys.version_info[0] < 3:
+            return self.__asdict__().items()
+        else: return ItemsView(self) #FIXME: show items not dict
     items.__doc__ = dict.items.__doc__
-    def values(self):
-        return self.__asdict__().values()
+    def values(self): #FIXME: 3.x dict_values is broken *not* pointing to self
+        if sys.version_info[0] < 3:
+            return self.__asdict__().values()
+        else: return ValuesView(self) #FIXME: show values not dict
     values.__doc__ = dict.values.__doc__
+    if _view:
+        def viewkeys(self):
+            return KeysView(self) #FIXME: show keys not dict
+        viewkeys.__doc__ = dict.viewkeys.__doc__
+        def viewvalues(self):
+            return ValuesView(self) #FIXME: show values not dict
+        viewvalues.__doc__ = dict.viewvalues.__doc__
+        def viewitems(self):
+            return ItemsView(self) #FIXME: show items not dict
+        viewitems.__doc__ = dict.viewitems.__doc__
     def pop(self, key, *value):
         memo = self.__asdict__()
         res = memo.pop(key, *value)
@@ -499,17 +533,14 @@ class file_archive(dict):
         self.__setitem__(key, res)
         return res
     setdefault.__doc__ = dict.setdefault.__doc__
-    def update(self, adict, **kwds):
+    def update(self, adict, **kwds): #FIXME: fails if adict is archive
         memo = self.__asdict__()
         memo.update(adict, **kwds)
         self.__save__(memo)
         return
     update.__doc__ = dict.update.__doc__
-    #FIXME: viewitems, viewkeys, viewvalues
     def __len__(self):
         return len(self.__asdict__())
-    def __contains__(self, key):
-        return self.has_key(key)
     pass
 
 
@@ -620,6 +651,7 @@ if __alchemy:
           query = select([self._key], self._key == key)
           row = self._engine.execute(query).fetchone()
           return row is not None
+      __contains__.__doc__ = dict.__contains__.__doc__
       def __setitem__(self, key, value):
           value = {self._val: value} #XXX: force into single item dict...?
           if key in self:
@@ -639,7 +671,7 @@ if __alchemy:
           if row is None: raise KeyError(key)
           return row[self._val]
       __getitem__.__doc__ = dict.__getitem__.__doc__
-      def __iter__(self): #FIXME: should be dict_keys(...) instance
+      def __iter__(self): #FIXME: should be dictionary-keyiterator
           query = select([self._key])
           result = self._engine.execute(query)
           for row in result:
@@ -665,24 +697,27 @@ if __alchemy:
       #FIXME: copy, fromkeys
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
-          return dict(self.iteritems())
+          if getattr(dict, 'iteritems', None):
+              return dict(self.iteritems())
+          else: return dict(self.items())
       def __repr__(self):
           return "archive(%s: %s)" % (self._table, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
-          def has_key(self, key):
+          def has_key(self, key): #XXX: different than contains... why?
               query = select([self._table], self._key == key)
               row = self._engine.execute(query).fetchone()
               return row != None
           has_key.__doc__ = dict.has_key.__doc__
-          def iteritems(self): #FIXME: should be dict_items(...) instance
+          def iteritems(self):#FIXME: should be dictionary-itemiterator
               query = select([self._table])
               result = self._engine.execute(query)
               for row in result:
                   yield (row[0], row[self._val])
           iteritems.__doc__ = dict.iteritems.__doc__
           iterkeys = __iter__
-          def itervalues(self): #FIXME: should be dict_values(...) instance
+          iterkeys.__doc__ = dict.iterkeys.__doc__
+          def itervalues(self):#FIXME: should be dictionary-valueiterator
               query = select([self._table])
               result = self._engine.execute(query)
               for row in result:
@@ -695,21 +730,25 @@ if __alchemy:
           def values(self):
               return list(self.itervalues())
       else:
-          def keys(self): #FIXME: should be dict_keys(...) instance
-              return self.__iter__()
-          def items(self): #FIXME: should be dict_items(...) instance
-              query = select([self._table])
-              result = self._engine.execute(query)
-              for row in result:
-                  yield (row[0], row[self._val])
-          def values(self): #FIXME: should be dict_values(...) instance
-              query = select([self._table])
-              result = self._engine.execute(query)
-              for row in result:
-                  yield row[self._val]
+          def keys(self):
+              return KeysView(self) #FIXME: show keys not dict
+          def items(self):
+              return ItemsView(self) #FIXME: show keys not dict
+          def values(self):
+              return ValuesView(self) #FIXME: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       items.__doc__ = dict.items.__doc__
       values.__doc__ = dict.values.__doc__
+      if _view:
+          def viewkeys(self):
+              return KeysView(self) #FIXME: show keys not dict
+          viewkeys.__doc__ = dict.viewkeys.__doc__
+          def viewvalues(self):
+              return ValuesView(self) #FIXME: show values not dict
+          viewvalues.__doc__ = dict.viewvalues.__doc__
+          def viewitems(self):
+              return ItemsView(self) #FIXME: show items not dict
+          viewitems.__doc__ = dict.viewitems.__doc__
       def pop(self, key, *value):
           L = len(value)
           if L > 1:
@@ -745,13 +784,12 @@ if __alchemy:
               self.__setitem__(key, _value)
           return _value
       setdefault.__doc__ = dict.setdefault.__doc__
-      def update(self, adict, **kwds):
+      def update(self, adict, **kwds): #FIXME: fails if adict is archive
           _dict = adict.copy()
           _dict.update(**kwds)
           [self.__setitem__(k,v) for (k,v) in _dict.items()]
           return #XXX: should do the above all at once, and more efficiently
       update.__doc__ = dict.update.__doc__
-      #FIXME: viewitems, viewkeys, viewvalues
       pass
 else:
   class sql_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
@@ -814,7 +852,8 @@ else:
       def __len__(self):
           return len(self.__asdict__())
       def __contains__(self, key):
-          return self.has_key(key)
+          return bool(self._select_key_items(key))
+      __contains__.__doc__ = dict.__contains__.__doc__
       def __setitem__(self, key, value): #XXX: maintains 'history' of values
           sql = "insert into %s values(?,?)" % self._table
           self._engine.execute(sql, (key,value))
@@ -827,7 +866,7 @@ else:
           if res: return res[-1][-1] # always get the last one
           raise KeyError(key)
       __getitem__.__doc__ = dict.__getitem__.__doc__
-      def __iter__(self): #FIXME: should be dict_keys(...) instance
+      def __iter__(self): #FIXME: should be dictionary-keyiterator
           sql = "select argstr from %s" % self._table
           return (k[-1] for k in set(self._engine.execute(sql)))
       __iter__.__doc__ = dict.__iter__.__doc__
@@ -852,14 +891,14 @@ else:
           return "archive(%s: %s)" % (self._table, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
-          def has_key(self, key):
-              return bool(self._select_key_items(key))
+          has_key = __contains__
           has_key.__doc__ = dict.has_key.__doc__
-          def iteritems(self): #FIXME: should be dict_items(...) instance
+          def iteritems(self): #FIXME: should be dictionary-itemiterator
               return ((k,self.__getitem__(k)) for k in self.__iter__())
           iteritems.__doc__ = dict.iteritems.__doc__
           iterkeys = __iter__
-          def itervalues(self): #FIXME: should be dict_values(...) instance
+          iterkeys.__doc__ = dict.iterkeys.__doc__
+          def itervalues(self): #FIXME: should be dictionary-valueiterator
               return (self.__getitem__(k) for k in self.__iter__())
           itervalues.__doc__ = dict.itervalues.__doc__
           def keys(self):
@@ -869,15 +908,25 @@ else:
           def values(self):
               return list(self.itervalues())
       else:
-          def keys(self): #FIXME: should be dict_keys(...) instance
-              return self.__iter__()
-          def items(self): #FIXME: should be dict_items(...) instance
-              return ((k,self.__getitem__(k)) for k in self.__iter__())
-          def values(self): #FIXME: should be dict_values(...) instance
-              return (self.__getitem__(k) for k in self.__iter__())
+          def keys(self):
+              return KeysView(self) #FIXME: show keys not dict
+          def items(self):
+              return ItemsView(self) #FIXME: show keys not dict
+          def values(self):
+              return ValuesView(self) #FIXME: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       items.__doc__ = dict.items.__doc__
       values.__doc__ = dict.values.__doc__
+      if _view:
+          def viewkeys(self):
+              return KeysView(self) #FIXME: show keys not dict
+          viewkeys.__doc__ = dict.viewkeys.__doc__
+          def viewvalues(self):
+              return ValuesView(self) #FIXME: show values not dict
+          viewvalues.__doc__ = dict.viewvalues.__doc__
+          def viewitems(self):
+              return ItemsView(self) #FIXME: show items not dict
+          viewitems.__doc__ = dict.viewitems.__doc__
       def pop(self, key, *value):
           L = len(value)
           if L > 1:
@@ -912,13 +961,12 @@ else:
               self.__setitem__(key, _value)
           return _value
       setdefault.__doc__ = dict.setdefault.__doc__
-      def update(self, adict, **kwds):
+      def update(self, adict, **kwds): #FIXME: fails if adict is archive
           _dict = adict.copy()
           _dict.update(**kwds)
           [self.__setitem__(k,v) for (k,v) in _dict.items()]
           return
       update.__doc__ = dict.update.__doc__
-      #FIXME: viewitems, viewkeys, viewvalues
       def _select_key_items(self, key):
           '''Return a tuple of (key, value) pairs that match the specified key'''
           sql = "select * from %s where argstr = ?" % self._table
