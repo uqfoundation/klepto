@@ -300,7 +300,12 @@ class dir_archive(dict):
         res = memo.pop(key, *value)
         return res
     pop.__doc__ = dict.pop.__doc__
-    #FIXME: popitem
+    def popitem(self):
+        key = self.__iter__()
+        try: key = key.next()
+        except StopIteration: raise KeyError("popitem(): dictionary is empty")
+        return (key, self.pop(key))
+    popitem.__doc__ = dict.popitem.__doc__
     def setdefault(self, key, *value):
         res = self.get(key, *value)
         self.__setitem__(key, res)
@@ -483,7 +488,12 @@ class file_archive(dict):
         self.__save__(memo)
         return res
     pop.__doc__ = dict.pop.__doc__
-    #FIXME: popitem
+    def popitem(self):
+        memo = self.__asdict__()
+        res = memo.popitem()
+        self.__save__(memo)
+        return res
+    popitem.__doc__ = dict.popitem.__doc__
     def setdefault(self, key, *value):
         res = self.__asdict__().get(key, *value)
         self.__setitem__(key, res)
@@ -715,7 +725,12 @@ if __alchemy:
           self._engine.execute(query)
           return _value
       pop.__doc__ = dict.pop.__doc__
-      #FIXME: popitem
+      def popitem(self):
+          key = self.__iter__()
+          try: key = key.next()
+          except StopIteration: raise KeyError("popitem(): dictionary is empty")
+          return (key, self.pop(key))
+      popitem.__doc__ = dict.popitem.__doc__
       def setdefault(self, key, *value):
           L = len(value)
           if L > 1:
@@ -878,7 +893,12 @@ else:
           self._conn.commit()
           return _value 
       pop.__doc__ = dict.pop.__doc__
-      #FIXME: popitem
+      def popitem(self):
+          key = self.__iter__()
+          try: key = key.next()
+          except StopIteration: raise KeyError("popitem(): dictionary is empty")
+          return (key, self.pop(key))
+      popitem.__doc__ = dict.popitem.__doc__
       def setdefault(self, key, *value):
           L = len(value)
           if L > 1:
