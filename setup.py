@@ -46,7 +46,7 @@ with open('LICENSE') as file:
 # generate the readme text
 long_description = \
 """---------------------------------------------------
-klepto: transparent caching to memory, disk, or database
+klepto: persistent caching to memory, disk, or database
 ---------------------------------------------------
 
 Klepto extends python's 'lru_cache' to utilize different keymaps and
@@ -231,7 +231,7 @@ write_info_py()
 setup_code = """
 setup(name='klepto',
       version='%s',
-      description='transparent caching to memory, disk, or database',
+      description='persistent caching to memory, disk, or database',
       long_description = '''%s''',
       author = 'Mike McKerns',
       maintainer = 'Mike McKerns',

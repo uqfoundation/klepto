@@ -1,6 +1,6 @@
 klepto
 ====
-transparent caching to memory, disk, or database
+persistent caching to memory, disk, or database
 
 About Klepto
 ----------
