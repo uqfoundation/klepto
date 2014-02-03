@@ -5,10 +5,12 @@ custom caching dict, which archives results to memory, file, or database
 from __future__ import absolute_import
 import os
 import sys
+import shutil
 from random import random
 try:
   from collections import KeysView, ValuesView, ItemsView
-  _view = True if sys.version_info[0] < 3 else False # True if 2.7
+  _view = getattr(dict, 'viewkeys', False)
+  _view = True if _view else False # True if 2.7
 except ImportError:
   _view = False
 try:
@@ -252,7 +254,17 @@ class dir_archive(dict):
         rmtree(self._root, self=False, ignore_errors=True)
         return
     clear.__doc__ = dict.clear.__doc__
-    #FIXME: copy
+    def copy(self, name=None): #XXX: always None? or allow other settings?
+        "D.copy(name) -> a copy of D, with a new archive at the given name"
+        if name is None: name = self._root
+        else: shutil.copytree(self._root, os.path.abspath(name))#XXX: overwrite?
+        adict = {'permissions':self._perm, 'fast':self._fast,\
+                 'memmode':self._mode, 'compression':self._compression,\
+                 'serialized':self._serialized, 'memsize':self._size,\
+                 'dirname':name}
+        adict = dir_archive(**adict)
+       #adict.update(self.__asdict__())
+        return adict
     def fromkeys(self, *args): #XXX: build a dict (not an archive)?
         return dict.fromkeys(*args)
     fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -470,7 +482,14 @@ class file_archive(dict):
         self.__save__({})
         return
     clear.__doc__ = dict.clear.__doc__
-    #FIXME: copy
+    def copy(self, name=None): #XXX: always None? or allow other settings?
+        "D.copy(name) -> a copy of D, with a new archive at the given name"
+        if name is None: name = self._filename
+        else: shutil.copy2(self._filename, name)#XXX: overwrite?
+        adict = {'serialized':self._serialized, 'filename':name}
+        adict = file_archive(**adict)
+       #adict.update(self.__asdict__())
+        return adict
     def fromkeys(self, *args): #XXX: build a dict (not an archive)?
         return dict.fromkeys(*args)
     fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -602,7 +621,7 @@ if __alchemy:
               except Exception:
                   pass
               self._engine = create_engine(self._database, **kwds)
-          # create table, if doesn't exist
+          # prepare to create table
           self._metadata = MetaData()
           self._key = 'key' # primary key name    #XXX: or table name ?
           self._val = 'val' # object storage name #XXX: ???
@@ -612,6 +631,10 @@ if __alchemy:
           else:
               valtype = Text() #XXX: String(255) or BLOB() ???
           if table is None: table = 'memo' #XXX: better random unique id ?
+          # preserve settings (for copy)
+          kwds.update({'table':table})
+          self.__config__ = kwds.copy()
+          # create table, if doesn't exist
           if isinstance(table, str): #XXX: better str-variants ? or no if ?
               table = Table(table, self._metadata,
                   Column(self._key, keytype, primary_key=True),
@@ -702,7 +725,15 @@ if __alchemy:
      #    query = self._table.insert(d)
      #    self._engine.execute(query)
      #    return
-      #FIXME: copy
+      def copy(self, name=None): #XXX: always None? or allow other settings?
+          "D.copy(name) -> a copy of D, with a new archive at the given name"
+          if name is None: name = self._database #XXX: better table?
+          else: pass #FIXME: copy database/table instead of do update below
+          adict = {'serialized':self._serialized, 'database':name}
+          adict.update(self.__config__)
+          adict = sql_archive(**adict) #FIXME: copies original, should reference
+          adict.update(self.__asdict__())
+          return adict
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
           return dict.fromkeys(*args)
       fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -826,6 +857,10 @@ else:
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
           self._database = database
           if table is None: table = 'memo'
+          # preserve settings (for copy)
+          kwds.update({'table':table})
+          self.__config__ = kwds.copy()
+          # create table, if doesn't exist
           self._table = table
           if not self._database.startswith('sqlite:///'):
               raise ValueError("install sqlalchemy for non-sqlite database support")
@@ -891,7 +926,15 @@ else:
           [self.pop(k) for k in self.keys()] # better delete table, add empty ?
           return
       clear.__doc__ = dict.clear.__doc__
-      #FIXME: copy
+      def copy(self, name=None): #XXX: always None? or allow other settings?
+          "D.copy(name) -> a copy of D, with a new archive at the given name"
+          if name is None: name = self._database #XXX: better table?
+          else: pass #FIXME: copy database/table instead of do update below
+          adict = {'serialized':self._serialized, 'database':name}
+          adict.update(self.__config__)
+          adict = sql_archive(**adict) #FIXME: copies original, should reference
+          adict.update(self.__asdict__())
+          return adict
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
           return dict.fromkeys(*args)
       fromkeys.__doc__ = dict.fromkeys.__doc__
