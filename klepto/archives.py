@@ -183,7 +183,34 @@ class dir_archive(dict):
         keys = self._keydict()
         # get the values
         return dict((key,self.__getitem__(key)) for key in keys)
-    #FIXME: missing a bunch of __...__
+    #FIXME: missing __cmp__, __...__
+    def __eq__(self, y):
+        try:
+            if y.__module__ != self.__module__: return NotImplemented
+            return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+           #if len(self) != len(y): return False
+           #try: s = min(k for k in self if self.get(k) != y.get(k))
+           #except ValueError: s = []
+           #try: v = min(k for k in y if y.get(k) != self.get(k))
+           #except ValueError: v = []
+           #if s != v: return False
+           #elif s == []: return True
+           #return self[s] == y[v]
+        except: return NotImplemented
+    __eq__.__doc__ = dict.__eq__.__doc__
+    def __ne__(self, y):
+        y = self.__eq__(y)
+        return NotImplemented if y is NotImplemented else not y
+    __ne__.__doc__ = dict.__ne__.__doc__
+    def __delitem__(self, key):
+        try:
+            memo = {key: None}
+            self._rmdir(key)
+        except:
+            memo = {}
+        memo.__delitem__(key)
+        return
+    __delitem__.__doc__ = dict.__delitem__.__doc__
     def __getitem__(self, key):
         _dir = self._getdir(key)
         if self._serialized:
@@ -464,7 +491,23 @@ class file_archive(dict):
         except OSError:
             "error in populating %s" % self._filename
         return
-    #FIXME: missing a bunch of __...__
+    #FIXME: missing __cmp__, __...__
+    def __eq__(self, y):
+        try:
+            if y.__module__ != self.__module__: return NotImplemented
+            return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+        except: return NotImplemented
+    __eq__.__doc__ = dict.__eq__.__doc__
+    def __ne__(self, y):
+        y = self.__eq__(y)
+        return NotImplemented if y is NotImplemented else not y
+    __ne__.__doc__ = dict.__ne__.__doc__
+    def __delitem__(self, key):
+        memo = self.__asdict__()
+        memo.__delitem__(key)
+        self.__save__(memo)
+        return
+    __delitem__.__doc__ = dict.__delitem__.__doc__
     def __getitem__(self, key):
         memo = self.__asdict__()
         return memo[key]
@@ -695,7 +738,32 @@ if __alchemy:
           self._engine.execute(query.values(**values))
           return
       __setitem__.__doc__ = dict.__setitem__.__doc__
-      #FIXME: missing a bunch of __...__
+      #FIXME: missing __cmp__, __...__
+      def __eq__(self, y):
+          try:
+              if y.__module__ != self.__module__: return NotImplemented
+              return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+             #if len(self) != len(y): return False
+             #try: s = min(k for k in self if self.get(k) != y.get(k))
+             #except ValueError: s = []
+             #try: v = min(k for k in y if y.get(k) != self.get(k))
+             #except ValueError: v = []
+             #if s != v: return False
+             #elif s == []: return True
+             #return self[s] == y[v]
+          except: return NotImplemented
+      __eq__.__doc__ = dict.__eq__.__doc__
+      def __ne__(self, y):
+          y = self.__eq__(y)
+          return NotImplemented if y is NotImplemented else not y
+      __ne__.__doc__ = dict.__ne__.__doc__
+      def __delitem__(self, key):
+          try: self.pop(key) #FIXME: faster without value lookup
+          except KeyError:
+              memo = {}
+              memo.__delitem__(key)
+          return
+      __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
           query = select([self._table], self._key == key)
           row = self._engine.execute(query).fetchone()
@@ -907,7 +975,32 @@ else:
           self._conn.commit()
           return
       __setitem__.__doc__ = dict.__setitem__.__doc__
-      #FIXME: missing a bunch of __...__
+      #FIXME: missing __cmp__, __...__
+      def __eq__(self, y):
+          try:
+              if y.__module__ != self.__module__: return NotImplemented
+              return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+             #if len(self) != len(y): return False
+             #try: s = min(k for k in self if self.get(k) != y.get(k))
+             #except ValueError: s = []
+             #try: v = min(k for k in y if y.get(k) != self.get(k))
+             #except ValueError: v = []
+             #if s != v: return False
+             #elif s == []: return True
+             #return self[s] == y[v]
+          except: return NotImplemented
+      __eq__.__doc__ = dict.__eq__.__doc__
+      def __ne__(self, y):
+          y = self.__eq__(y)
+          return NotImplemented if y is NotImplemented else not y
+      __ne__.__doc__ = dict.__ne__.__doc__
+      def __delitem__(self, key):
+          try: self.pop(key) #FIXME: faster without value lookup
+          except KeyError:
+              memo = {}
+              memo.__delitem__(key)
+          return
+      __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
           res = self._select_key_items(key)
           if res: return res[-1][-1] # always get the last one
