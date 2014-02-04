@@ -70,15 +70,13 @@ class cache(dict):
                 self.archive.update({arg:self.__getitem__(arg)})
         return
     def archived(self, *on):
-        """check if the dict is archived, or toggle archiving
+        """check if the cache is archived, or toggle archiving
 
     If on is True, turn on the archive; if on is False, turn off the archive
         """
         L = len(on)
-        if not L:
-            return not isinstance(self.archive, null_archive)
-        if L > 1:
-            raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+        if not L: return not isinstance(self.archive, null_archive)
+        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         if bool(on[0]):
             if not isinstance(self.__swap__, null_archive):
                 self.__swap__, self.__archive__ = self.__archive__, self.__swap__
@@ -104,10 +102,27 @@ class dict_archive(dict):
     """dictionary with an archive interface"""
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
-        return self
+        return self.copy()
     def __repr__(self):
         return "archive(%s)" % (self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
+    # interface
+    def load(self, *args):
+        """does nothing. required to use an archive as a cache"""
+        return
+    dump = load
+    def archived(self, *on):
+        """check if the cache is a persistent archive"""
+        L = len(on)
+        if not L: return False
+        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+        raise ValueError("cannot toggle archive")
+    def __get_archive(self):
+        return self
+    def __archive(self, archive):
+        raise ValueError("cannot set new archive")
+    archive = property(__get_archive, __archive)
+    pass
 
 
 class null_archive(dict):
@@ -131,6 +146,22 @@ class null_archive(dict):
     def __repr__(self):
         return "archive(NULL)"
     __repr__.__doc__ = dict.__repr__.__doc__
+    # interface
+    def load(self, *args):
+        """does nothing. required to use an archive as a cache"""
+        return
+    dump = load
+    def archived(self, *on):
+        """check if the cache is a persistent archive"""
+        L = len(on)
+        if not L: return False
+        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+        raise ValueError("cannot toggle archive")
+    def __get_archive(self):
+        return self
+    def __archive(self, archive):
+        raise ValueError("cannot set new archive")
+    archive = property(__get_archive, __archive)
     pass
 
 
@@ -415,6 +446,21 @@ class dir_archive(dict):
         raise NotImplementedError("cannot set attribute '_file'")
 
     # interface
+    def load(self, *args):
+        """does nothing. required to use an archive as a cache"""
+        return
+    dump = load
+    def archived(self, *on):
+        """check if the cache is a persistent archive"""
+        L = len(on)
+        if not L: return True
+        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+        raise ValueError("cannot toggle archive")
+    def __get_archive(self):
+        return self
+    def __archive(self, archive):
+        raise ValueError("cannot set new archive")
+    archive = property(__get_archive, __archive)
     _file = property(_get_file, _set_file)
     pass
 
@@ -611,6 +657,22 @@ class file_archive(dict):
     update.__doc__ = dict.update.__doc__
     def __len__(self):
         return len(self.__asdict__())
+    # interface
+    def load(self, *args):
+        """does nothing. required to use an archive as a cache"""
+        return
+    dump = load
+    def archived(self, *on):
+        """check if the cache is a persistent archive"""
+        L = len(on)
+        if not L: return True
+        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+        raise ValueError("cannot toggle archive")
+    def __get_archive(self):
+        return self
+    def __archive(self, archive):
+        raise ValueError("cannot set new archive")
+    archive = property(__get_archive, __archive)
     pass
 
 
@@ -901,6 +963,22 @@ if __alchemy:
           [self.__setitem__(k,v) for (k,v) in adict.items()]
           return #XXX: should do the above all at once, and more efficiently
       update.__doc__ = dict.update.__doc__
+      # interface
+      def load(self, *args):
+          """does nothing. required to use an archive as a cache"""
+          return
+      dump = load
+      def archived(self, *on):
+          """check if the cache is a persistent archive"""
+          L = len(on)
+          if not L: return True
+          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+          raise ValueError("cannot toggle archive")
+      def __get_archive(self):
+          return self
+      def __archive(self, archive):
+          raise ValueError("cannot set new archive")
+      archive = property(__get_archive, __archive)
       pass
 else:
   class sql_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
@@ -1123,6 +1201,22 @@ else:
           '''Return a tuple of (key, value) pairs that match the specified key'''
           sql = "select * from %s where argstr = ?" % self._table
           return tuple(self._engine.execute(sql, (key,)))
+      # interface
+      def load(self, *args):
+          """does nothing. required to use an archive as a cache"""
+          return
+      dump = load
+      def archived(self, *on):
+          """check if the cache is a persistent archive"""
+          L = len(on)
+          if not L: return True
+          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+          raise ValueError("cannot toggle archive")
+      def __get_archive(self):
+          return self
+      def __archive(self, archive):
+          raise ValueError("cannot set new archive")
+      archive = property(__get_archive, __archive)
       pass
 
 
