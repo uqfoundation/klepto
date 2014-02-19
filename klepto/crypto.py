@@ -79,9 +79,9 @@ def serializers(): #FIXME: could be much smarter
     """return a tuple of string names of serializers"""
     try:
         import cPickle #XXX: could check this faster
-        return (None, 'pickle', 'cPickle', 'dill')
+        return (None, 'pickle', 'json', 'cPickle', 'dill')
     except ImportError:
-        return (None, 'pickle', 'dill')
+        return (None, 'pickle', 'json', 'dill')
 
 
 def pickle(object, serializer=None, **kwds):

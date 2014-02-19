@@ -45,6 +45,13 @@ class cache(dict):
         self.__archive__ = kwds.pop('archive', null_archive())
         dict.__init__(self, *args, **kwds)
         return
+    def __repr__(self):
+        archive = self.archive.__class__.__name__
+        name = self.archive.name
+        if name:
+            return "%s('%s', %s, cached=True)" % (archive, name, dict(self))
+        return "%s(%s, cached=True)" % (archive, dict(self))
+    __repr__.__doc__ = dict.__repr__.__doc__
     def load(self, *args):
         """load archive contents
 
@@ -85,6 +92,26 @@ class cache(dict):
         else:
             if not isinstance(self.__archive__, null_archive):
                 self.__swap__, self.__archive__ = self.__archive__, self.__swap__
+    def sync(self, clear=False):
+        """synchronize cache and archive contents
+
+    If clear is True, clear all archive contents before synchronizing cache
+        """
+        if clear: self.archive.clear()
+        self.dump()
+        if not clear: self.load()
+        return
+    def drop(self): #XXX: sync first?
+        "set the current archive to NULL"
+        self.archived(True) #XXX: should not throw error if not archived?
+        self.archive = null_archive()
+        return
+    def open(self, archive):
+        "replace the current archive with the archive provided"
+        try: self.archived(True)
+        except ValueError: pass
+        self.archive = archive
+        return
     def __get_archive(self):
        #if not isinstance(self.__archive__, null_archive):
        #    return
@@ -104,7 +131,7 @@ class dict_archive(dict):
         """build a dictionary containing the archive contents"""
         return self.copy()
     def __repr__(self):
-        return "archive(%s)" % (self.__asdict__())
+        return "dict_archive(%s, cached=False)" % (self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
     def load(self, *args):
@@ -117,11 +144,23 @@ class dict_archive(dict):
         if not L: return False
         if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         raise ValueError("cannot toggle archive")
+    def sync(self, clear=False):
+        "does nothing. required to use an archive as a cache"
+        pass
+    def drop(self): #XXX: or actually drop the backend?
+        "set the current archive to NULL"
+        return self.__archive(archive)
+    def open(self, archive):
+        "replace the current archive with the archive provided"
+        return self.__archive(archive)
     def __get_archive(self):
         return self
+    def __get_name(self):
+        return
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
+    name = property(__get_name, __archive)
     pass
 
 
@@ -144,7 +183,7 @@ class null_archive(dict):
         return self.get(key, *value)
     setdefault.__doc__ = dict.setdefault.__doc__
     def __repr__(self):
-        return "archive(NULL)"
+        return "null_archive(cached=False)"
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
     def load(self, *args):
@@ -157,11 +196,23 @@ class null_archive(dict):
         if not L: return False
         if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         raise ValueError("cannot toggle archive")
+    def sync(self, clear=False):
+        "does nothing. required to use an archive as a cache"
+        pass
+    def drop(self): #XXX: or actually drop the backend?
+        "set the current archive to NULL"
+        return self.__archive(archive)
+    def open(self, archive):
+        "replace the current archive with the archive provided"
+        return self.__archive(archive)
     def __get_archive(self):
         return self
+    def __get_name(self):
+        return
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
+    name = property(__get_name, __archive)
     pass
 
 
@@ -276,8 +327,7 @@ class dir_archive(dict):
         return memo
     __getitem__.__doc__ = dict.__getitem__.__doc__
     def __repr__(self):
-        name = os.path.basename(self._root)
-        return "archive(%s: %s)" % (name, self.__asdict__())
+        return "dir_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     def __setitem__(self, key, value):
         _key = TEMP+hash(random(), 'md5')
@@ -456,11 +506,23 @@ class dir_archive(dict):
         if not L: return True
         if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         raise ValueError("cannot toggle archive")
+    def sync(self, clear=False):
+        "does nothing. required to use an archive as a cache"
+        pass
+    def drop(self): #XXX: or actually drop the backend?
+        "set the current archive to NULL"
+        return self.__archive(archive)
+    def open(self, archive):
+        "replace the current archive with the archive provided"
+        return self.__archive(archive)
     def __get_archive(self):
         return self
+    def __get_name(self):
+        return os.path.basename(self._root)
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
+    name = property(__get_name, __archive)
     _file = property(_get_file, _set_file)
     pass
 
@@ -559,7 +621,7 @@ class file_archive(dict):
         return memo[key]
     __getitem__.__doc__ = dict.__getitem__.__doc__
     def __repr__(self):
-        return "archive(%s: %s)" % (self._filename, self.__asdict__())
+        return "file_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     def __setitem__(self, key, value):
         memo = self.__asdict__()
@@ -668,14 +730,27 @@ class file_archive(dict):
         if not L: return True
         if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         raise ValueError("cannot toggle archive")
+    def sync(self, clear=False):
+        "does nothing. required to use an archive as a cache"
+        pass
+    def drop(self): #XXX: or actually drop the backend?
+        "set the current archive to NULL"
+        return self.__archive(archive)
+    def open(self, archive):
+        "replace the current archive with the archive provided"
+        return self.__archive(archive)
     def __get_archive(self):
         return self
+    def __get_name(self):
+        return os.path.basename(self._filename)
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
+    name = property(__get_name, __archive)
     pass
 
 
+#FIXME: should have sqltable/sql archives, similar to file/dir archives
 if __alchemy:
   class sql_archive(dict):
       """dictionary-style interface to a sql database"""
@@ -873,7 +948,7 @@ if __alchemy:
               return dict(self.iteritems())
           else: return dict(self.items())
       def __repr__(self):
-          return "archive(%s: %s)" % (self._table, self.__asdict__())
+          return "sql_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           def has_key(self, key): #XXX: different than contains... why?
@@ -974,11 +1049,23 @@ if __alchemy:
           if not L: return True
           if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
           raise ValueError("cannot toggle archive")
+      def sync(self, clear=False):
+          "does nothing. required to use an archive as a cache"
+          pass
+      def drop(self): #XXX: or actually drop the backend?
+          "set the current archive to NULL"
+          return self.__archive(archive)
+      def open(self, archive):
+          "replace the current archive with the archive provided"
+          return self.__archive(archive)
       def __get_archive(self):
           return self
+      def __get_name(self):
+          return "%s?table=%s" % (self._database, self._table)
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
       archive = property(__get_archive, __archive)
+      name = property(__get_name, __archive)
       pass
 else:
   class sql_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
@@ -1117,7 +1204,7 @@ else:
           [d.update({k:v}) for (k,v) in res] # always get the last one
           return d
       def __repr__(self):
-          return "archive(%s: %s)" % (self._table, self.__asdict__())
+          return "sql_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           has_key = __contains__
@@ -1212,11 +1299,23 @@ else:
           if not L: return True
           if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
           raise ValueError("cannot toggle archive")
+      def sync(self, clear=False):
+          "does nothing. required to use an archive as a cache"
+          pass
+      def drop(self): #XXX: or actually drop the backend?
+          "set the current archive to NULL"
+          return self.__archive(archive)
+      def open(self, archive):
+          "replace the current archive with the archive provided"
+          return self.__archive(archive)
       def __get_archive(self):
           return self
+      def __get_name(self):
+          return "%s?table=%s" % (self._database, self._table)
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
       archive = property(__get_archive, __archive)
+      name = property(__get_name, __archive)
       pass
 
 

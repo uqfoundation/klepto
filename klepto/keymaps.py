@@ -307,10 +307,10 @@ class picklemap(keymap):
         return
     def encode(self, *args, **kwds):
         """use a flattened scheme for generating a key"""
-        return pickle(keymap.encode(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill
+        return pickle(keymap.encode(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill  # separator=(',',':') for json
     def encrypt(self, *args, **kwds):
         """use a non-flat scheme for generating a key"""
-        return pickle(keymap.encrypt(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill
+        return pickle(keymap.encrypt(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill  # separator=(',',':') for json
 
 
 # EOF
