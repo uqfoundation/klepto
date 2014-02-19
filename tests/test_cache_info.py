@@ -13,7 +13,7 @@ def _test_hits(algorithm, maxsize=20, keymap=None,
         return 3*x+y
 
     if archived:
-        f.archive(file_archive('cache.pkl'))
+        f.archive(file_archive('cache.pkl',cached=False))
 
     domain = list(range(rangelimit))
     domain += [float(i) for i in domain]
@@ -85,32 +85,32 @@ if __name__ == '__main__':
     if PY32:
         assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,89,0,100,89)
     else:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,90,0,100,90)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,89,0,100,89)
     x = results[1]
     if PY32:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,67,22,100,89)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,66,24,100,90)
     else:
         assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,68,21,100,89)
     x = results[2]
     if PY32:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,57,33,100,90)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,58,32,100,90)
     else:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (9,51,40,100,91)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (9,55,36,100,91)
     x = results[3]
     if PY32:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (15,42,43,100,85)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,37,53,100,90)
     else:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,45,44,100,89)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (12,40,48,100,88)
     x = results[4]
     if PY32:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,29,60,None,89)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (5,37,58,None,95)
     else:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (13,30,57,None,87)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,32,57,None,89)
     x = results[5]
     if PY32:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,23,77,0,0)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,25,75,0,0)
     else:
-        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,22,78,0,0)
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,25,75,0,0)
    #for cache in caches:
    #    msg = cache.__name__ + ":"
    #    msg += "%s" % str(_test_hits(cache, maxsize=100,

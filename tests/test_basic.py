@@ -72,26 +72,21 @@ if __name__ == '__main__':
     ]
     init = dicts[0]
 
-    na = null_archive
-    da = dict_archive
-    fa = file_archive
-    db = sql_archive
-    dr = dir_archive
-    caches = [
-      cache(archive=na(), **init),
-      cache(archive=da(), **init),
-      cache(archive=fa(filename=None,serialized=True), **init),
-      cache(archive=fa(filename=None,serialized=False), **init),
-      cache(archive=fa(filename='xxxx.pkl',serialized=True), **init),
-      cache(archive=fa(filename='xxxx.py',serialized=False), **init),
-      cache(archive=dr(dirname='memoi',serialized=False), **init),
-      cache(archive=dr(dirname='memop',serialized=True), **init),
-      cache(archive=dr(dirname='memoj',serialized=True,fast=True), **init),
-      cache(archive=dr(dirname='memoz',serialized=True,compression=1), **init),
-      cache(archive=dr(dirname='memom',serialized=True,memmode='r+'), **init),
-     #cache(archive=db(database=None,table=None), **init), 
-     #cache(archive=db(database='memo.db',table=None), **init), 
-     #cache(archive=db(database=None,table='memo'), **init), 
+    archives = [
+      null_archive(init),
+      dict_archive(init),
+      file_archive(None,init,serialized=True),
+      file_archive(None,init,serialized=False),
+      file_archive('xxxx.pkl',init,serialized=True),
+      file_archive('xxxx.py',init,serialized=False),
+      dir_archive('memoi',init,serialized=False),
+      dir_archive('memop',init,serialized=True),
+      dir_archive('memoj',init,serialized=True,fast=True),
+      dir_archive('memoz',init,serialized=True,compression=1),
+      dir_archive('memom',init,serialized=True,memmode='r+'),
+     #sql_archive(None,init),
+     #sql_archive('sqlite:///memo.db',init),
+     #sql_archive('memo',init),
     ]
     #FIXME: even 'safe' archives throw Error when cache.load, cache.dump fails
     #       (often demonstrated in sql_archive, as it barfs on tuple & dict)
@@ -140,7 +135,7 @@ if __name__ == '__main__':
 
     for mapper in maps:
        #print (mapper)
-        func = [_test_cache(cache, mapper) for cache in caches]
+        func = [_test_cache(cache, mapper) for cache in archives]
         _cleanup()
 
         for f in func:

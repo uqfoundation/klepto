@@ -5,7 +5,7 @@ from pox import rmtree
 rmtree('foo', ignore_errors=True)
 
 
-d = dir_archive('foo')
+d = dir_archive('foo', cached=False)
 key = '1234TESTMETESTMETESTME1234'
 d._mkdir(key)
 #XXX: repeat mkdir does nothing, should it clear?  I think not.
@@ -106,27 +106,27 @@ def check_numpy(archive):
 # FIXME: add tests for non-string keys (e.g. d[1234] = 'hello')
 
 # try some of the different __init__
-archive = dir_archive()
+archive = dir_archive(cached=False)
 check_basic(archive)
 check_numpy(archive)
 #rmtree('memo')
 
-archive = dir_archive(fast=True)
+archive = dir_archive(cached=False,fast=True)
 check_basic(archive)
 check_numpy(archive)
 #rmtree('memo')
 
-archive = dir_archive(compression=3)
+archive = dir_archive(cached=False,compression=3)
 check_basic(archive)
 check_numpy(archive)
 #rmtree('memo')
 
-archive = dir_archive(memmode='r+')
+archive = dir_archive(cached=False,memmode='r+')
 check_basic(archive)
 check_numpy(archive)
 #rmtree('memo')
 
-archive = dir_archive(serialized=False)
+archive = dir_archive(cached=False,serialized=False)
 check_basic(archive)
 check_numpy(archive)
 rmtree('memo')

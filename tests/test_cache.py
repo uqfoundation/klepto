@@ -123,7 +123,7 @@ except ImportError:
 import sys
 import dill
 from klepto.archives import cache, sql_archive, dict_archive
-@memoized(cache=cache(archive=sql_archive()))
+@memoized(cache=sql_archive())
 def add(x,y):
     return x+y
 add(1,2)
@@ -134,7 +134,7 @@ _key4 = '((), '+str({'y':3, 'x':1})+')'
 _key3 = '((), '+str({'y':2, 'x':1})+')'
 assert add.__cache__() == {_key4: 4, _key3: 3}
 
-@memoized(cache=dict_archive()) # use archive backend 'direcly'
+@memoized(cache=dict_archive(cached=False)) # use archive backend 'direcly'
 def add(x,y):
     return x+y
 add(1,2)
