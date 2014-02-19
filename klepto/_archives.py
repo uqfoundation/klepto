@@ -149,7 +149,7 @@ class dict_archive(dict):
         pass
     def drop(self): #XXX: or actually drop the backend?
         "set the current archive to NULL"
-        return self.__archive(archive)
+        return self.__archive(None)
     def open(self, archive):
         "replace the current archive with the archive provided"
         return self.__archive(archive)
@@ -201,7 +201,7 @@ class null_archive(dict):
         pass
     def drop(self): #XXX: or actually drop the backend?
         "set the current archive to NULL"
-        return self.__archive(archive)
+        return self.__archive(None)
     def open(self, archive):
         "replace the current archive with the archive provided"
         return self.__archive(archive)
@@ -511,7 +511,7 @@ class dir_archive(dict):
         pass
     def drop(self): #XXX: or actually drop the backend?
         "set the current archive to NULL"
-        return self.__archive(archive)
+        return self.__archive(None)
     def open(self, archive):
         "replace the current archive with the archive provided"
         return self.__archive(archive)
@@ -735,7 +735,7 @@ class file_archive(dict):
         pass
     def drop(self): #XXX: or actually drop the backend?
         "set the current archive to NULL"
-        return self.__archive(archive)
+        return self.__archive(None)
     def open(self, archive):
         "replace the current archive with the archive provided"
         return self.__archive(archive)
@@ -1054,7 +1054,7 @@ if __alchemy:
           pass
       def drop(self): #XXX: or actually drop the backend?
           "set the current archive to NULL"
-          return self.__archive(archive)
+          return self.__archive(None)
       def open(self, archive):
           "replace the current archive with the archive provided"
           return self.__archive(archive)
@@ -1304,7 +1304,7 @@ else:
           pass
       def drop(self): #XXX: or actually drop the backend?
           "set the current archive to NULL"
-          return self.__archive(archive)
+          return self.__archive(None)
       def open(self, archive):
           "replace the current archive with the archive provided"
           return self.__archive(archive)
