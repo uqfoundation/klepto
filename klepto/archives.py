@@ -9,6 +9,7 @@ from ._archives import null_archive as _null_archive
 from ._archives import dir_archive as _dir_archive
 from ._archives import file_archive as _file_archive
 from ._archives import sql_archive as _sql_archive
+from ._archives import _sqlname
 
 __all__ = ['cache','dict_archive','null_archive',\
            'dir_archive','file_archive','sql_archive']
@@ -105,13 +106,7 @@ class sql_archive(_sql_archive):
         serialized: if True, pickle table contents; otherwise cast as strings
         """
         if dict is None: dict = {}
-        key = '?table='
-        if name is None: db, table = None, None # name=None
-        elif name.startswith((key,'table=')): # name='table=memo'
-            db, table = None, name.lstrip('?').lstrip('table').lstrip('=')
-        elif name.count('/'): # name='sqlite:///'
-            db, table = name.split(key,1) if name.count(key) else (name, None)
-        else: db, table = None, name # name='memo'
+        db, table = _sqlname(name)
         archive = _sql_archive(db, table, **kwds)
         if cached: archive = cache(archive=archive)
         archive.update(dict)

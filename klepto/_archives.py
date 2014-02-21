@@ -750,6 +750,21 @@ class file_archive(dict):
     pass
 
 
+def _sqlname(name):
+    """parse database name and table name from given name string
+
+    name: a string of the form 'databaseurl?table=tablename'
+    """
+    key = '?table='
+    if name is None: db, table = None, None # name=None
+    elif name.startswith((key,'table=')): # name='table=memo'
+        db, table = None, name.lstrip('?').lstrip('table').lstrip('=')
+    elif name.count('/'): # name='sqlite:///'
+        db, table = name.split(key,1) if name.count(key) else (name, None)
+    else: db, table = None, name # name='memo'
+    return (db, table)
+
+
 #FIXME: should have sqltable/sql archives, similar to file/dir archives
 if __alchemy:
   class sql_archive(dict):
@@ -812,7 +827,6 @@ if __alchemy:
               valtype = Text() #XXX: String(255) or BLOB() ???
           if table is None: table = 'memo' #XXX: better random unique id ?
           # preserve settings (for copy)
-          kwds.update({'table':table})
           self.__config__ = kwds.copy()
           # create table, if doesn't exist
           if isinstance(table, str): #XXX: better str-variants ? or no if ?
@@ -834,7 +848,8 @@ if __alchemy:
       To drop associated database, use __drop__(database=True)
           """
           if not bool(kwds.get('database', False)):
-              self._table.drop(self._engine)
+              self._table.drop(self._engine) #XXX: optionally delete data ?
+              self._metadata.remove(self._table)
               self._metadata = self._engine = self._table = None
               return
           url, dbname = self._database.rsplit('/', 1)
@@ -932,9 +947,10 @@ if __alchemy:
      #    return
       def copy(self, name=None): #XXX: always None? or allow other settings?
           "D.copy(name) -> a copy of D, with a new archive at the given name"
-          if name is None: name = self._database #XXX: better table?
+          if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
-          adict = {'serialized':self._serialized, 'database':name}
+          db,table = _sqlname(name)
+          adict = {'serialized':self._serialized, 'database':db, 'table':table}
           adict.update(self.__config__)
           adict = sql_archive(**adict) #FIXME: copies original, should reference
           adict.update(self.__asdict__())
@@ -1091,7 +1107,6 @@ else:
           self._database = database
           if table is None: table = 'memo'
           # preserve settings (for copy)
-          kwds.update({'table':table})
           self.__config__ = kwds.copy()
           # create table, if doesn't exist
           self._table = table
@@ -1186,9 +1201,10 @@ else:
       clear.__doc__ = dict.clear.__doc__
       def copy(self, name=None): #XXX: always None? or allow other settings?
           "D.copy(name) -> a copy of D, with a new archive at the given name"
-          if name is None: name = self._database #XXX: better table?
+          if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
-          adict = {'serialized':self._serialized, 'database':name}
+          db,table = _sqlname(name)
+          adict = {'serialized':self._serialized, 'database':db, 'table':table}
           adict.update(self.__config__)
           adict = sql_archive(**adict) #FIXME: copies original, should reference
           adict.update(self.__asdict__())
