@@ -819,12 +819,37 @@ if __alchemy:
           self.__config__ = kwds.copy()
           # table internals
           self._metadata = MetaData()
-          self._key = 'key' # primary key name #FIXME: use 'special' name
-          self._val = 'val' # object storage name
-          # discover all tables #FIXME: with self._key
+          self._key = 'Kkeyqwg907' # primary key name
+          self._val = 'Kvalmol142' # object storage name
+          # discover all tables #FIXME: with matching self._key
           keys = self._keys()
           [self._mktable(key) for key in keys]
          #self._metadata.create_all(self._engine)
+          return
+      def __drop__(self, **kwds):
+          """drop the associated database
+
+      EXPERIMENTAL: For certain database engines, this may not work due
+      to permission issues. Caller may need to be connected as a superuser
+      and database owner.
+          """
+          url, dbname = self._database.rsplit('/', 1)
+          self._engine = create_engine(url)
+          try:
+              conn = self._engine.connect()
+              if self._database.startswith('postgres'):
+                  # these two commands require superuser privs
+                  conn.execute("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname)
+                  conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname) # 'pid' used in postgresql >= 9.2
+                  conn.connection.connection.set_isolation_level(0)
+              conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
+              if self._database.startswith('postgres'):
+                  conn.connection.connection.set_isolation_level(1)
+          except Exception:
+              dbpath = self._database.split('///')[-1]
+              if os.path.exists(dbpath): # else fail silently
+                  os.remove(dbpath)
+          self._metadata = self._engine = self._table = None
           return
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
@@ -1001,7 +1026,7 @@ if __alchemy:
           tables = {}
           return tables[table]
       def _keys(self, meta=False):
-          "get a list of tables in the database"
+          "get a list of tables in the database" #FIXME: with matching self._key
           if meta: return self._metadata.tables.keys()
           # look at all the tables in the database
           names = self._engine.table_names()
@@ -1102,8 +1127,8 @@ if __alchemy:
               self._engine = create_engine(self._database, **kwds)
           # prepare to create table
           self._metadata = MetaData()
-          self._key = 'key' # primary key name    #XXX: or table name ?
-          self._val = 'val' # object storage name #XXX: ???
+          self._key = 'Kkey' # primary key name
+          self._val = 'Kval' # object storage name
           keytype = String(255) #XXX: other better fixed size?
           if self._serialized:
               valtype = PickleType(pickler=dill)
@@ -1403,8 +1428,8 @@ else:
           self._engine.execute(sql)
           # compatibility
           self._metadata = None
-          self._key = 'key'
-          self._val = 'val'
+          self._key = 'Kkey'
+          self._val = 'Kval'
           return
       def __drop__(self, **kwds):
           """drop the database table
