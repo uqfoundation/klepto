@@ -45,6 +45,7 @@ Klepto has the following archive types::
 
 * 'file_archive' - a dictionary-style interface to a file
 * 'dir_archive' - a dictionary-style interface to a folder of files
+* 'sqltable_archive' - a dictionary-style interface to a sql database table
 * 'sql_archive' - a dictionary-style interface to a sql database
 * 'dict_archive' - a dictionary with an archive interface
 * 'null_archive' - a dictionary-style interface to a dummy archive 

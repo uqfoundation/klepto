@@ -9,10 +9,11 @@ from ._archives import null_archive as _null_archive
 from ._archives import dir_archive as _dir_archive
 from ._archives import file_archive as _file_archive
 from ._archives import sql_archive as _sql_archive
+from ._archives import sqltable_archive as _sqltable_archive
 from ._archives import _sqlname
 
-__all__ = ['cache','dict_archive','null_archive',\
-           'dir_archive','file_archive','sql_archive']
+__all__ = ['cache','dict_archive','null_archive','dir_archive',\
+           'file_archive','sql_archive','sqltable_archive']
 
 class dict_archive(_dict_archive):
     def __new__(dict_archive, dict=None, cached=True, **kwds):
@@ -81,9 +82,9 @@ class file_archive(_file_archive):
         return archive
     pass
 
-class sql_archive(_sql_archive):
-    def __new__(sql_archive, name=None, dict=None, cached=True, **kwds):
-        """initialize a dictionary with a sql database archive backend
+class sqltable_archive(_sqltable_archive):
+    def __new__(sqltable_archive, name=None, dict=None, cached=True, **kwds):
+        """initialize a dictionary with a sql database table archive backend
 
     Connect to an existing database, or initialize a new database, at the
     selected database url. For example, to use a sqlite database 'foo.db'
@@ -107,7 +108,36 @@ class sql_archive(_sql_archive):
         """
         if dict is None: dict = {}
         db, table = _sqlname(name)
-        archive = _sql_archive(db, table, **kwds)
+        archive = _sqltable_archive(db, table, **kwds)
+        if cached: archive = cache(archive=archive)
+        archive.update(dict)
+        return archive
+    pass
+
+class sql_archive(_sql_archive):
+    def __new__(sql_archive, name=None, dict=None, cached=True, **kwds):
+        """initialize a dictionary with a sql database archive backend
+
+    Connect to an existing database, or initialize a new database, at the
+    selected database url. For example, to use a sqlite database 'foo.db'
+    in the current directory, database='sqlite:///foo.db'. To use a mysql
+    database 'foo' on localhost, database='mysql://user:pass@localhost/foo'.
+    For postgresql, use database='postgresql://user:pass@localhost/foo'. 
+    When connecting to sqlite, the default database is ':memory:'; otherwise,
+    the default database is 'defaultdb'. If sqlalchemy is not installed,
+    storable values are limited to strings, integers, floats, and other
+    basic objects. If sqlalchemy is installed, additional keyword options
+    can provide database configuration, such as connection pooling.
+    To use a mysql or postgresql database, sqlalchemy must be installed.
+
+    Inputs:
+        name: url for the sql database [default: (see note above)]
+        dict: initial dictionary to seed the archive
+        cached: if True, use an in-memory cache interface to the archive
+        serialized: if True, pickle table contents; otherwise cast as strings
+        """
+        if dict is None: dict = {}
+        archive = _sql_archive(name, **kwds)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive

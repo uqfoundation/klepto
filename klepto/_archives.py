@@ -25,8 +25,8 @@ from pox import mkdir, rmtree, walk
 from .crypto import hash
 from . import _pickle
 
-__all__ = ['cache','dict_archive','null_archive',\
-           'dir_archive','file_archive','sql_archive']
+__all__ = ['cache','dict_archive','null_archive','dir_archive',\
+           'file_archive','sql_archive','sqltable_archive']
 
 PREFIX = "K_"  # hash needs to be importable
 TEMP = "I_"    # indicates 'temporary' file
@@ -765,10 +765,294 @@ def _sqlname(name):
     return (db, table)
 
 
-#FIXME: should have sqltable/sql archives, similar to file/dir archives
 if __alchemy:
   class sql_archive(dict):
       """dictionary-style interface to a sql database"""
+      def __init__(self, database=None, **kwds):
+          """initialize a sql database with a synchronized dictionary interface
+
+      Connect to an existing database, or initialize a new database, at the
+      selected database url. For example, to use a sqlite database 'foo.db'
+      in the current directory, database='sqlite:///foo.db'.  To use a mysql
+      database 'foo' on localhost, database='mysql://user:pass@localhost/foo'.
+      For postgresql, use database='postgresql://user:pass@localhost/foo'. 
+      When connecting to sqlite, the default database is ':memory:'; otherwise,
+      the default database is 'defaultdb'.  Allows keyword options for database
+      configuration, such as connection pooling.
+
+      Inputs:
+          database: url of the database backend [default: sqlite:///:memory:]
+          serialized: if True, pickle table contents; otherwise cast as strings
+          """
+          self._serialized = bool(kwds.pop('serialized', True))
+          # create database, if doesn't exist
+          if database is None: database = 'sqlite:///:memory:'
+          elif database == 'sqlite:///': database = 'sqlite:///:memory:'
+          self._database = database
+          url, dbname = self._database.rsplit('/', 1)
+          if url.endswith(":/") or dbname == '': # then no dbname was given
+              url = self._database
+              dbname = 'defaultdb'
+              self._database = "%s/%s" % (url,dbname)
+          # get engine
+          if dbname == ':memory:':
+              self._engine = create_engine(url, **kwds)
+          elif self._database.startswith('sqlite'):
+              self._engine = create_engine(self._database, **kwds)
+          else:
+              self._engine = create_engine(url) #XXX: **kwds ?
+              try:
+                  conn = self._engine.connect()
+                  if self._database.startswith('postgres'):
+                      conn.connection.connection.set_isolation_level(0)
+                  conn.execute("CREATE DATABASE %s;" % dbname)
+              except Exception: pass
+              finally:
+                  if self._database.startswith('postgres'):
+                      conn.connection.connection.set_isolation_level(1)
+              try:
+                  self._engine.execute("USE %s;" % dbname)
+              except Exception:
+                  pass
+              self._engine = create_engine(self._database, **kwds)
+          # preserve settings (for copy)
+          self.__config__ = kwds.copy()
+          # table internals
+          self._metadata = MetaData()
+          self._key = 'key' # primary key name #FIXME: use 'special' name
+          self._val = 'val' # object storage name
+          # discover all tables #FIXME: with self._key
+          keys = self._keys()
+          [self._mktable(key) for key in keys]
+         #self._metadata.create_all(self._engine)
+          return
+      def __asdict__(self):
+          """build a dictionary containing the archive contents"""
+          keys = self._keys()
+          return dict((key,self.__getitem__(key)) for key in keys)
+      #FIXME: missing __cmp__, __...__
+      def __eq__(self, y):
+          try:
+              if y.__module__ != self.__module__: return NotImplemented
+              return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+          except: return NotImplemented
+      __eq__.__doc__ = dict.__eq__.__doc__
+      def __ne__(self, y):
+          y = self.__eq__(y)
+          return NotImplemented if y is NotImplemented else not y
+      __ne__.__doc__ = dict.__ne__.__doc__
+      def __delitem__(self, key):
+          table = self._gettable(key)
+          self._metadata.remove(table)
+          table.drop(self._engine) #XXX: optionally delete data ?
+          return
+      __delitem__.__doc__ = dict.__delitem__.__doc__
+      def __getitem__(self, key): #XXX: value is table['key','key']; slow?
+          table = self._gettable(key)
+          query = select([table], table.c[self._key] == self._key) #XXX: slow?
+          row = self._engine.execute(query).fetchone()
+          if row is None:
+              raise RuntimeError("primary key for '%s' not found" % key)
+          return row[self._val]
+      __getitem__.__doc__ = dict.__getitem__.__doc__
+      def __repr__(self):
+          return "sql_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
+      __repr__.__doc__ = dict.__repr__.__doc__
+      def __setitem__(self, key, value): #XXX: _setkey is part of _mktable
+          value = {self._val: value}
+          try:
+              table = self._gettable(key) # KeyError if table doesn't exist
+              query = table.update().where(table.c[self._key] == self._key)
+              values = value
+          except KeyError:
+              table = self._mktable(key)
+              query = table.insert()
+              values = {self._key: self._key}
+              values.update(value)
+          self._engine.execute(query.values(**values))
+          return
+      __setitem__.__doc__ = dict.__setitem__.__doc__
+      def clear(self):
+         #self._metadata.drop_all()
+          for key in self._keys():
+              try: self.__delitem__(key) #XXX: optionally delete data ?
+              except: pass #XXX: don't catch ?
+          return
+      clear.__doc__ = dict.clear.__doc__
+      def copy(self, name=None): #XXX: always None? or allow other settings?
+          "D.copy(name) -> a copy of D, with a new archive at the given name"
+          if name is None: name = self.name
+          else: pass #FIXME: copy database/table instead of do update below
+          adict = {'serialized':self._serialized, 'database':name}
+          adict.update(self.__config__)
+          adict = sql_archive(**adict)#FIXME: should reference, not copy
+          adict.update(self.__asdict__())
+          return adict
+      def fromkeys(self, *args): #XXX: build a dict (not an archive)?
+          return dict.fromkeys(*args)
+      fromkeys.__doc__ = dict.fromkeys.__doc__
+      def get(self, key, value=None):
+          try: _value = self.__getitem__(key)
+          except KeyError: _value = value
+          return _value
+      get.__doc__ = dict.get.__doc__
+      def __contains__(self, key):
+          return key in self._keys()
+      __contains__.__doc__ = dict.__contains__.__doc__
+      if getattr(dict, 'has_key', None):
+          has_key = __contains__
+          has_key.__doc__ = dict.has_key.__doc__
+          def __iter__(self):
+              return self._tables().iterkeys()
+          def iteritems(self): #XXX: should be dictionary-itemiterator
+              keys = self._tables()
+              return ((key,self.__getitem__(key)) for key in keys)
+          iteritems.__doc__ = dict.iteritems.__doc__
+          iterkeys = __iter__
+          iterkeys.__doc__ = dict.iterkeys.__doc__
+          def itervalues(self): #XXX: should be dictionary-valueiterator
+              keys = self._tables()
+              return (self.__getitem__(key) for key in keys)
+          itervalues.__doc__ = dict.itervalues.__doc__
+      else:
+          def __iter__(self):
+              return iter(self._keys())
+      __iter__.__doc__ = dict.__iter__.__doc__
+      def keys(self):
+          if sys.version_info[0] < 3:
+              return self._keys()
+          else: return KeysView(self) #XXX: show keys not dict
+      keys.__doc__ = dict.keys.__doc__
+      def items(self):
+          if sys.version_info[0] < 3:
+              keys = self._tables()
+              return [(key,self.__getitem__(key)) for key in keys]
+          else: return ItemsView(self) #XXX: show items not dict
+      items.__doc__ = dict.items.__doc__
+      def values(self):
+          if sys.version_info[0] < 3:
+              keys = self._tables()
+              return [self.__getitem__(key) for key in keys]
+          else: return ValuesView(self) #XXX: show values not dict
+      values.__doc__ = dict.values.__doc__
+      if _view:
+          def viewkeys(self):
+              return KeysView(self) #XXX: show keys not dict
+          viewkeys.__doc__ = dict.viewkeys.__doc__
+          def viewvalues(self):
+              return ValuesView(self) #XXX: show values not dict
+          viewvalues.__doc__ = dict.viewvalues.__doc__
+          def viewitems(self):
+              return ItemsView(self) #XXX: show items not dict
+          viewitems.__doc__ = dict.viewitems.__doc__
+      def pop(self, key, *value):
+          try:
+              memo = {key: self.__getitem__(key)}
+              self.__delitem__(key)
+          except:
+              memo = {}
+          res = memo.pop(key, *value)
+          return res
+      pop.__doc__ = dict.pop.__doc__
+      def popitem(self):
+          key = self.__iter__()
+          try: key = key.next()
+          except StopIteration: raise KeyError("popitem(): dictionary is empty")
+          return (key, self.pop(key))
+      popitem.__doc__ = dict.popitem.__doc__
+      def setdefault(self, key, *value):
+          res = self.get(key, *value)
+          self.__setitem__(key, res)
+          return res
+      setdefault.__doc__ = dict.setdefault.__doc__
+      def update(self, adict, **kwds):
+          if hasattr(adict,'__asdict__'): adict = adict.__asdict__()
+          memo = {}
+          memo.update(adict, **kwds) #XXX: could be better ?
+          for (key,val) in memo.items():
+              self.__setitem__(key,val)
+          return
+      update.__doc__ = dict.update.__doc__
+      def __len__(self):
+          return len(self._keys())
+      def _mktable(self, key):
+          "create table corresponding to given key"
+          try: return self._gettable(key, meta=True) # table exists
+          except KeyError: table = key # table doesn't exist in metadata
+          # prepare table types #XXX: do in __init__ ?
+          keytype = String(255)
+          if self._serialized: valtype = PickleType(pickler=dill)
+          else: valtype = Text()
+          # create table, if doesn't exist
+          table = Table(table, self._metadata,
+              Column(self._key, keytype, primary_key=True),
+              Column(self._val, valtype)
+          )
+          # initialize
+          self._metadata.create_all(self._engine)
+          return table
+      def _gettable(self, key, meta=False):
+          "get table corresponding to given key"
+          table = str(key)
+          if meta: return self._metadata.tables[table]
+          # otherwise, look at all the tables in the database
+          if table in self._keys(): return self._mktable(table)
+          # if you are here... raise a KeyError
+          tables = {}
+          return tables[table]
+      def _keys(self, meta=False):
+          "get a list of tables in the database"
+          if meta: return self._metadata.tables.keys()
+          # look at all the tables in the database
+          names = self._engine.table_names()
+          names = [str(name) for name in names]
+          # clean up metadata by removing stale tables
+          tables = set(self._metadata.tables.keys()) - set(names) #XXX: slow?
+          tables = [self._gettable(key, meta=True) for key in tables]
+          [self._metadata.remove(key) for key in tables]
+          return names
+      def _tables(self, meta=False):
+          "get a dict of tables in the database"
+          if meta: return self._metadata.tables
+          # otherwise, look at all the tables in the database
+          keys = self._keys()
+          return dict((key,self._mktable(key)) for key in keys) #XXX: immutable
+      def _primary(self, key): #XXX: faster if value is table['key'].name ?
+          "get table primary key corresponding to given key"
+          table = self._gettable(key)
+          return table.c[self._key]
+      # interface
+      def load(self, *args):
+          """does nothing. required to use an archive as a cache"""
+          return
+      dump = load
+      def archived(self, *on):
+          """check if the cache is a persistent archive"""
+          L = len(on)
+          if not L: return True
+          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+          raise ValueError("cannot toggle archive")
+      def sync(self, clear=False):
+          "does nothing. required to use an archive as a cache"
+          pass
+      def drop(self): #XXX: or actually drop the backend?
+          "set the current archive to NULL"
+          return self.__archive(None)
+      def open(self, archive):
+          "replace the current archive with the archive provided"
+          return self.__archive(archive)
+      def __get_archive(self):
+          return self
+      def __get_name(self):
+          return self._database
+      def __archive(self, archive):
+          raise ValueError("cannot set new archive")
+      archive = property(__get_archive, __archive)
+      name = property(__get_name, __archive)
+      pass
+
+  class sqltable_archive(dict):
+      """dictionary-style interface to a sql database table"""
       def __init__(self, database=None, table=None, **kwds):
           """initialize a sql database with a synchronized dictionary interface
 
@@ -952,7 +1236,7 @@ if __alchemy:
           db,table = _sqlname(name)
           adict = {'serialized':self._serialized, 'database':db, 'table':table}
           adict.update(self.__config__)
-          adict = sql_archive(**adict) #FIXME: copies original, should reference
+          adict = sqltable_archive(**adict) #FIXME: should reference, not copy
           adict.update(self.__asdict__())
           return adict
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
@@ -964,7 +1248,7 @@ if __alchemy:
               return dict(self.iteritems())
           else: return dict(self.items())
       def __repr__(self):
-          return "sql_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
+          return "sqltable_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           def has_key(self, key): #XXX: different than contains... why?
@@ -1084,10 +1368,10 @@ if __alchemy:
       name = property(__get_name, __archive)
       pass
 else:
-  class sql_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
-      """dictionary-style interface to a sql database"""
+  class sqltable_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
+      """dictionary-style interface to a sql database table"""
       def __init__(self, database=None, table=None, **kwds): #serialized
-          """initialize a  sql database with a synchronized dictionary interface
+          """initialize a sql database with a synchronized dictionary interface
 
       Connect to an existing database, or initialize a new database, at the
       selected database url. For example, to use a sqlite database 'foo.db'
@@ -1206,7 +1490,7 @@ else:
           db,table = _sqlname(name)
           adict = {'serialized':self._serialized, 'database':db, 'table':table}
           adict.update(self.__config__)
-          adict = sql_archive(**adict) #FIXME: copies original, should reference
+          adict = sqltable_archive(**adict) #FIXME: should reference, not copy
           adict.update(self.__asdict__())
           return adict
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
@@ -1220,7 +1504,7 @@ else:
           [d.update({k:v}) for (k,v) in res] # always get the last one
           return d
       def __repr__(self):
-          return "sql_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
+          return "sqltable_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           has_key = __contains__
@@ -1333,10 +1617,11 @@ else:
       archive = property(__get_archive, __archive)
       name = property(__get_name, __archive)
       pass
+  sql_archive = sqltable_archive #XXX: or NotImplemented ?
 
 
 # backward compatibility
 archive_dict = cache
-db_archive = sql_archive
+db_archive = sqltable_archive
 
 # EOF

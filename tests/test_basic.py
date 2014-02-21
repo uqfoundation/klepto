@@ -84,12 +84,15 @@ if __name__ == '__main__':
       dir_archive('memoj',init,serialized=True,fast=True),
       dir_archive('memoz',init,serialized=True,compression=1),
       dir_archive('memom',init,serialized=True,memmode='r+'),
+     #sqltable_archive(None,init),
+     #sqltable_archive('sqlite:///memo.db',init),
+     #sqltable_archive('memo',init),
      #sql_archive(None,init),
      #sql_archive('sqlite:///memo.db',init),
      #sql_archive('memo',init),
     ]
     #FIXME: even 'safe' archives throw Error when cache.load, cache.dump fails
-    #       (often demonstrated in sql_archive, as it barfs on tuple & dict)
+    #       (often demonstrated in sqltable_archive, as barfs on tuple & dict)
 
     #XXX: when running a single map, there should be 3 possible results:
     #     1) flat=False may produce unhashable keys: all misses
