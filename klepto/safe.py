@@ -8,20 +8,11 @@
 If a hashing error occurs, the cached function will be evaluated.
 """
 from __future__ import absolute_import
-from collections import deque
-from random import choice #XXX: biased?
-from heapq import nsmallest
-from operator import itemgetter
-try:
-    from itertools import filterfalse
-except ImportError:
-    from itertools import ifilterfalse as filterfalse
-from functools import update_wrapper
-from threading import RLock
-from klepto.rounding import deep_round, simple_round
+from functools import update_wrapper, partial
 from klepto.archives import cache as archive_dict
 from klepto.keymaps import stringmap
 from klepto.tools import CacheInfo
+from klepto.rounding import deep_round, simple_round
 from ._inspect import _keygen
 
 __all__ = ['no_cache','inf_cache','lfu_cache',\
@@ -35,8 +26,8 @@ class Counter(dict):
 #XXX: what about caches that expire due to time, calls, etc...
 #XXX: check the impact of not serializing by default, and stringmap by default
 
-def no_cache(*arg, **kwd):
-    ''''safe' version of the empty (NO) cache decorator.
+class no_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the empty (NO) cache decorator.
 
     Unlike other cache decorators, this decorator does not cache.  It is a
     dummy that collects statistics and conforms to the caching interface.  This
@@ -73,31 +64,47 @@ def no_cache(*arg, **kwd):
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
     the cache to the archive with f.dump().
-    '''
-    maxsize = 0
+    """
+    def __init__(self, maxsize=0, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+       #if maxsize is not 0: raise ValueError('maxsize cannot be set')
+        maxsize = 0 #XXX: allow maxsize to be given but ignored ?
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    keymap = kwd.get('keymap', None)
-    if keymap is None: keymap = stringmap(flat=False)
-    ignore = kwd.get('ignore', None)
-    if ignore is None: ignore = tuple()
-    cache = archive_dict()
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    tol = kwd.get('tol', None)
-    deep = kwd.get('deep', False)
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
        #cache = dict()                  # mapping of args to results
         stats = [0, 0, 0]               # make statistics updateable non-locally
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
         _len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
 
         def wrapper(*args, **kwds):
             try:
@@ -134,7 +141,8 @@ def no_cache(*arg, **kwd):
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -185,11 +193,21 @@ def no_cache(*arg, **kwd):
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (0, cache, keymap, ignore, tol, deep))
 
 
-def inf_cache(*arg, **kwd):
-    ''''safe' version of the infinitely-growing (INF) cache decorator.
+class inf_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the infinitely-growing (INF) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
@@ -228,34 +246,47 @@ def inf_cache(*arg, **kwd):
     Clear the cache and statistics with f.clear().  Replace the cache archive
     with f.archive(obj).  Load from the archive with f.load(), and dump from
     the cache to the archive with f.dump().
-    '''
-    maxsize = None
+    """
+    def __init__(self, maxsize=None, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+       #if maxsize is not None: raise ValueError('maxsize cannot be set')
+        maxsize = None #XXX: allow maxsize to be given but ignored ?
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    keymap = kwd.get('keymap', None)
-    if keymap is None: keymap = stringmap(flat=False)
-    ignore = kwd.get('ignore', None)
-    if ignore is None: ignore = tuple()
-    cache = kwd.get('cache', None)
-    if cache is None: cache = archive_dict()
-    elif type(cache) is dict: cache = archive_dict(cache)
-    # does archive make sense with database, file, ?... (requires more thought)
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    tol = kwd.get('tol', None)
-    deep = kwd.get('deep', False)
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
        #cache = dict()                  # mapping of args to results
         stats = [0, 0, 0]               # make statistics updateable non-locally
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
        #_len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
 
         def wrapper(*args, **kwds):
             try:
@@ -290,7 +321,8 @@ def inf_cache(*arg, **kwd):
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -342,11 +374,21 @@ def inf_cache(*arg, **kwd):
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (None, cache, keymap, ignore, tol, deep))
 
 
-def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
-    ''''safe' version of the least-frequenty-used (LFU) cache decorator.
+class lfu_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the least-frequenty-used (LFU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
@@ -391,33 +433,52 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
     the cache to the archive with f.dump().
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Frequently_Used
-    '''
-    if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
-    if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+    """
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+        if maxsize == 0:
+            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+        if maxsize is None:
+            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    if keymap is None: keymap = stringmap(flat=False)
-    if ignore is None: ignore = tuple()
-    if cache is None: cache = archive_dict()
-    elif type(cache) is dict: cache = archive_dict(cache)
-    # does archive make sense with database, file, ?... (requires more thought)
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
+        from heapq import nsmallest
+        from operator import itemgetter
        #cache = dict()                  # mapping of args to results
         use_count = Counter()           # times each key has been accessed
         stats = [0, 0, 0]               # make statistics updateable non-locally
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
         _len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
 
         def wrapper(*args, **kwds):
             try:
@@ -467,7 +528,8 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -520,11 +582,22 @@ def lfu_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
        #wrapper._queue = use_count #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
-    ''''safe' version of the least-recently-used (LRU) cache decorator.
+class lru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the least-recently-used (LRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
@@ -569,28 +642,44 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
     the cache to the archive with f.dump().
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
-    '''
-    if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
-    if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
-    maxqueue = maxsize * 10 #XXX: user settable? confirm this works as expected
+    """
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+        if maxsize == 0:
+            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+        if maxsize is None:
+            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    if keymap is None: keymap = stringmap(flat=False)
-    if ignore is None: ignore = tuple()
-    if cache is None: cache = archive_dict()
-    elif type(cache) is dict: cache = archive_dict(cache)
-    # does archive make sense with database, file, ?... (requires more thought)
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
+        from collections import deque
+        try:
+            from itertools import filterfalse
+        except ImportError:
+            from itertools import ifilterfalse as filterfalse
        #cache = dict()                  # mapping of args to results
         queue = deque()                 # order that keys have been used
         refcount = Counter()            # times each key is in the queue
@@ -599,6 +688,12 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
         _len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
+        maxqueue = maxsize * 10 #XXX: settable? confirm this works as expected
 
         # lookup optimizations (ugly but fast)
         queue_append, queue_popleft = queue.append, queue.popleft
@@ -672,7 +767,8 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -726,11 +822,22 @@ def lru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
        #wrapper._queue = queue #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
-    ''''safe' version of the most-recently-used (MRU) cache decorator.
+class mru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the most-recently-used (MRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
@@ -775,33 +882,51 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
     the cache to the archive with f.dump().
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Most_Recently_Used
-    '''
-    if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
-    if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+    """
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+        if maxsize == 0:
+            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+        if maxsize is None:
+            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    if keymap is None: keymap = stringmap(flat=False)
-    if ignore is None: ignore = tuple()
-    if cache is None: cache = archive_dict()
-    elif type(cache) is dict: cache = archive_dict(cache)
-    # does archive make sense with database, file, ?... (requires more thought)
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
+        from collections import deque
        #cache = dict()                  # mapping of args to results
         queue = deque()                 # order that keys have been used
         stats = [0, 0, 0]               # make statistics updateable non-locally
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
         _len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
 
         # lookup optimizations (ugly but fast)
         queue_append, queue_popleft = queue.append, queue.popleft
@@ -854,7 +979,8 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -907,11 +1033,22 @@ def mru_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=
        #wrapper._queue = queue #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
-    ''''safe' version of the random-replacement (RR) cache decorator.
+class rr_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+    """'safe' version of the random-replacement (RR) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
@@ -956,34 +1093,52 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
     the cache to the archive with f.dump().
 
     http://en.wikipedia.org/wiki/Cache_algorithms#Random_Replacement
-    '''
-    if maxsize == 0:
-        return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
-    if maxsize is None:
-        return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+    """
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False):
+        if maxsize == 0:
+            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+        if maxsize is None:
+            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+        if cache is None: cache = archive_dict()
+        elif type(cache) is dict: cache = archive_dict(cache)
 
-    if keymap is None: keymap = stringmap(flat=False)
-    if ignore is None: ignore = tuple()
-    if cache is None: cache = archive_dict()
-    elif type(cache) is dict: cache = archive_dict(cache)
-    # does archive make sense with database, file, ?... (requires more thought)
+        if keymap is None: keymap = stringmap(flat=False)
+        if ignore is None: ignore = tuple()
 
-    if deep: rounded = deep_round
-    else: rounded = simple_round
-   #else: rounded = shallow_round #FIXME: slow
+        if deep: rounded = deep_round
+        else: rounded = simple_round
+       #else: rounded = shallow_round #FIXME: slow
 
-    @rounded(tol)
-    def rounded_args(*args, **kwds):
-        return (args, kwds)
+        @rounded(tol)
+        def rounded_args(*args, **kwds):
+            return (args, kwds)
 
-    def decorating_function(user_function):
+        # set state
+        self.__state__ = {
+            'maxsize': maxsize,
+            'cache': cache,
+            'keymap': keymap,
+            'ignore': ignore,
+            'roundargs': rounded_args,
+            'tol': tol,
+            'deep': deep,
+        }
+        return
+
+    def __call__(self, user_function):
        #cache = dict()                  # mapping of args to results
         stats = [0, 0, 0]               # make statistics updateable non-locally
         HIT, MISS, LOAD = 0, 1, 2       # names for the stats fields
         _len = len                      # localize the global len() function
        #lock = RLock()                  # linkedlist updates aren't threadsafe
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        rounded_args = self.__state__['roundargs']
 
         def wrapper(*args, **kwds):
+            from random import choice #XXX: biased?
             try:
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
@@ -1024,7 +1179,8 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
 
         def archive(obj):
             """Replace the cache archive"""
-            cache.archive = obj
+            if isinstance(obj, archive_dict): cache.archive = obj.archive
+            else: cache.archive = obj
 
         def key(*args, **kwds):
             """Get the cache key for the given *args,**kwds"""
@@ -1076,11 +1232,35 @@ def rr_cache(maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=F
        #wrapper._queue = None  #XXX
         return update_wrapper(wrapper, user_function)
 
-    return decorating_function
+    def __get__(self, obj, objtype):
+        """support instance methods"""
+        return partial(self.__call__, obj)
+
+    def __reduce__(self):
+        maxsize = self.__state__['maxsize']
+        cache = self.__state__['cache']
+        keymap = self.__state__['keymap']
+        ignore = self.__state__['ignore']
+        tol = self.__state__['tol']
+        deep = self.__state__['deep']
+        return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
 if __name__ == '__main__':
-    pass
+    import dill
+
+   #@no_cache(10, tol=0)
+   #@inf_cache(10, tol=0)
+   #@lfu_cache(10, tol=0)
+   #@lru_cache(10, tol=0)
+   #@mru_cache(10, tol=0)
+    @rr_cache(10, tol=0)
+    def squared(x):
+        return x**2
+
+    res = squared(10)
+
+    assert res == dill.loads(dill.dumps(squared))(10)
 
 
 # EOF
