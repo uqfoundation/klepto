@@ -26,15 +26,21 @@ class Counter(dict):
 #XXX: what about caches that expire due to time, calls, etc...
 #XXX: check the impact of not serializing by default, and stringmap by default
 
-class no_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class no_cache(object):
     """'safe' version of the empty (NO) cache decorator.
 
     Unlike other cache decorators, this decorator does not cache.  It is a
     dummy that collects statistics and conforms to the caching interface.  This
     decorator takes an integer tolerance 'tol', equal to the number of decimal
     places to which it will round off floats, and a bool 'deep' for whether the
-    rounding on inputs will be 'shallow' or 'deep'.
+    rounding on inputs will be 'shallow' or 'deep'.  Note that rounding is not
+    applied to the calculation of new results, but rather as a simple form of
+    cache interpolation.  For example, with tol=0 and a cached value for f(3.0),
+    f(3.1) will lookup f(3.0) in the cache while f(3.6) will store a new value;
+    however if tol=1, both f(3.1) and f(3.6) will store new values.
 
+    maxsize = maximum cache size [fixed at maxsize=0]
+    cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
     ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
@@ -206,7 +212,7 @@ class no_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
         return (self.__class__, (0, cache, keymap, ignore, tol, deep))
 
 
-class inf_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class inf_cache(object):
     """'safe' version of the infinitely-growing (INF) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -215,8 +221,13 @@ class inf_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
     issues, it is suggested to frequently dump and clear the cache.  This
     decorator takes an integer tolerance 'tol', equal to the number of decimal
     places to which it will round off floats, and a bool 'deep' for whether the
-    rounding on inputs will be 'shallow' or 'deep'.
+    rounding on inputs will be 'shallow' or 'deep'.  Note that rounding is not
+    applied to the calculation of new results, but rather as a simple form of
+    cache interpolation.  For example, with tol=0 and a cached value for f(3.0),
+    f(3.1) will lookup f(3.0) in the cache while f(3.6) will store a new value;
+    however if tol=1, both f(3.1) and f(3.6) will store new values.
 
+    maxsize = maximum cache size [fixed at maxsize=None]
     cache = storage hashmap (default is {})
     keymap = cache key encoder (default is keymaps.stringmap(flat=False))
     ignore = function argument names and indicies to 'ignore' (default is None)
@@ -387,7 +398,7 @@ class inf_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
         return (self.__class__, (None, cache, keymap, ignore, tol, deep))
 
 
-class lfu_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class lfu_cache(object):
     """'safe' version of the least-frequenty-used (LFU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -397,7 +408,12 @@ class lfu_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
     maxsize. For caches without an archive, the LFU algorithm manages the cache.
     This decorator takes an integer tolerance 'tol', equal to the number of
     decimal places to which it will round off floats, and a bool 'deep' for
-    whether the rounding on inputs will be 'shallow' or 'deep'.
+    whether the rounding on inputs will be 'shallow' or 'deep'.  Note that
+    rounding is not applied to the calculation of new results, but rather as a
+    simple form of cache interpolation.  For example, with tol=0 and a cached
+    value for f(3.0), f(3.1) will lookup f(3.0) in the cache while f(3.6) will
+    store a new value; however if tol=1, both f(3.1) and f(3.6) will store
+    new values.
 
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
@@ -596,7 +612,7 @@ class lfu_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
         return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-class lru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class lru_cache(object):
     """'safe' version of the least-recently-used (LRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -606,7 +622,12 @@ class lru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
     maxsize. For caches without an archive, the LRU algorithm manages the cache.
     This decorator takes an integer tolerance 'tol', equal to the number of
     decimal places to which it will round off floats, and a bool 'deep' for
-    whether the rounding on inputs will be 'shallow' or 'deep'.
+    whether the rounding on inputs will be 'shallow' or 'deep'.  Note that
+    rounding is not applied to the calculation of new results, but rather as a
+    simple form of cache interpolation.  For example, with tol=0 and a cached
+    value for f(3.0), f(3.1) will lookup f(3.0) in the cache while f(3.6) will
+    store a new value; however if tol=1, both f(3.1) and f(3.6) will store
+    new values.
 
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
@@ -836,7 +857,7 @@ class lru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
         return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-class mru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class mru_cache(object):
     """'safe' version of the most-recently-used (MRU) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -846,7 +867,12 @@ class mru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
     maxsize. For caches without an archive, the MRU algorithm manages the cache.
     This decorator takes an integer tolerance 'tol', equal to the number of
     decimal places to which it will round off floats, and a bool 'deep' for
-    whether the rounding on inputs will be 'shallow' or 'deep'.
+    whether the rounding on inputs will be 'shallow' or 'deep'.  Note that
+    rounding is not applied to the calculation of new results, but rather as a
+    simple form of cache interpolation.  For example, with tol=0 and a cached
+    value for f(3.0), f(3.1) will lookup f(3.0) in the cache while f(3.6) will
+    store a new value; however if tol=1, both f(3.1) and f(3.6) will store
+    new values.
 
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
@@ -1047,7 +1073,7 @@ class mru_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
         return (self.__class__, (maxsize, cache, keymap, ignore, tol, deep))
 
 
-class rr_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
+class rr_cache(object):
     """'safe' version of the random-replacement (RR) cache decorator.
 
     This decorator memoizes a function's return value each time it is called.
@@ -1057,7 +1083,12 @@ class rr_cache(object): #FIXME: fix doc - rounding is in regard to cache lookup
     maxsize. For caches without an archive, the RR algorithm manages the cache.
     This decorator takes an integer tolerance 'tol', equal to the number of
     decimal places to which it will round off floats, and a bool 'deep' for
-    whether the rounding on inputs will be 'shallow' or 'deep'.
+    whether the rounding on inputs will be 'shallow' or 'deep'.  Note that
+    rounding is not applied to the calculation of new results, but rather as a
+    simple form of cache interpolation.  For example, with tol=0 and a cached
+    value for f(3.0), f(3.1) will lookup f(3.0) in the cache while f(3.6) will
+    store a new value; however if tol=1, both f(3.1) and f(3.6) will store
+    new values.
 
     maxsize = maximum cache size
     cache = storage hashmap (default is {})
