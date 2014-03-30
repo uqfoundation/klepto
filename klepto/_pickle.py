@@ -198,7 +198,7 @@ class NumpyPickler(Pickler):
         # Count the number of npy files that we have created:
         self._npy_counter = 0
         Pickler.__init__(self, self.file,
-                                protocol=pickle.HIGHEST_PROTOCOL)
+                                protocol=dill.DEFAULT_PROTOCOL)
         # delayed import of numpy, to avoid tight coupling
         try:
             import numpy as np
