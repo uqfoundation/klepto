@@ -1,7 +1,13 @@
 #!/usr/bin/env python
+#
 # code inspired by Raymond Hettinger's LFU and LRU cache decorators
 # on http://code.activestate.com/recipes/498245-lru-and-lfu-cache-decorators
 # and subsequent forks as well as the version available in python3.3
+#
+# Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
+# Copyright (c) 2013-2014 California Institute of Technology.
+# License: 3-clause BSD.  The full license text is available at:
+#  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
 """
 a selection of caching decorators
 """

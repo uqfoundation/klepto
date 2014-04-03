@@ -1,11 +1,17 @@
-"""
-Utilities for fast persistence of big data, with optional compression.
-"""
-
+#!/usr/bin/env python
+#
 # Author: Gael Varoquaux <gael dot varoquaux at normalesup dot org>
 # Copyright (c) 2009 Gael Varoquaux
 # License: BSD Style, 3 clauses.
-# Modified: Mike McKerns (December 2013)
+
+# Forked by: Mike McKerns (December 2013)
+# Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
+# Copyright (c) 2013-2014 California Institute of Technology.
+# License: 3-clause BSD.  The full license text is available at:
+#  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
+"""
+Utilities for fast persistence of big data, with optional compression.
+"""
 
 import traceback
 import sys
