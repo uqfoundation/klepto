@@ -9,9 +9,9 @@ from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
-stable_version = '0.1'
+stable_version = '0.1.1'
 target_version = '0.1.1'
-is_release = False
+is_release = True
 
 # check if easy_install is available
 try:
@@ -161,7 +161,7 @@ Requirements
 Klepto requires::
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
-    - dill, version >= 0.2
+    - dill, version >= 0.2.1
     - pox, version >= 0.2
 
 Optional requirements::
@@ -251,7 +251,7 @@ setup(name='klepto',
 """ % (target_version, long_description)
 
 # add dependencies
-dill_version = '>=0.2'
+dill_version = '>=0.2.1'
 pox_version = '>=0.2'
 sqlalchemy_version = '>=0.8.4'
 import sys
