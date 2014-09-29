@@ -54,10 +54,10 @@ class cache(dict):
         archive = self.archive.__class__.__name__
         name = self.archive.name
         if name:
-            return "%s('%s', %s, cached=True)" % (archive, name, dict(self))
+            return "%s(%r, %s, cached=True)" % (archive, str(name), dict(self))
         return "%s(%s, cached=True)" % (archive, dict(self))
     __repr__.__doc__ = dict.__repr__.__doc__
-    def load(self, *args):
+    def load(self, *args): #FIXME: archive may use key 'encoding' (dir_archive)
         """load archive contents
 
     If arguments are given, only load the specified keys
@@ -70,7 +70,7 @@ class cache(dict):
             except KeyError:
                 pass
         return
-    def dump(self, *args):
+    def dump(self, *args): #FIXME: archive may use key 'encoding' (dir_archive)
         """dump contents to archive
 
     If arguments are given, only dump the specified keys
@@ -139,6 +139,7 @@ class dict_archive(dict):
         return "dict_archive(%s, cached=False)" % (self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
+    _id = None # can be used to store a 'name'
     def load(self, *args):
         """does nothing. required to use an archive as a cache"""
         return
@@ -161,7 +162,7 @@ class dict_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return
+        return self._id
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -191,6 +192,7 @@ class null_archive(dict):
         return "null_archive(cached=False)"
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
+    _id = None # can be used to store a 'name'
     def load(self, *args):
         """does nothing. required to use an archive as a cache"""
         return
@@ -213,7 +215,7 @@ class null_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return
+        return self._id
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -360,6 +362,8 @@ class dir_archive(dict):
         try: #XXX: possible permissions issues here
             self._rmdir(key)
             os.renames(self._getdir(_key), self._getdir(key))
+#       except TypeError: #XXX: catch key that isn't converted to safe filename
+#           "error in populating directory for '%s'" % key
         except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
             "error in populating directory for '%s'" % key
     __setitem__.__doc__ = dict.__setitem__.__doc__

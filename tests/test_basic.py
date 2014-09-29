@@ -80,8 +80,8 @@ if __name__ == '__main__':
     init = dicts[0]
 
     archives = [
-      null_archive(init),
-      dict_archive(init),
+      null_archive(None,init),
+      dict_archive(None,init),
       file_archive(None,init,serialized=True),
       file_archive(None,init,serialized=False),
       file_archive('xxxx.pkl',init,serialized=True),

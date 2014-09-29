@@ -21,30 +21,34 @@ __all__ = ['cache','dict_archive','null_archive','dir_archive',\
            'file_archive','sql_archive','sqltable_archive']
 
 class dict_archive(_dict_archive):
-    def __new__(dict_archive, dict=None, cached=True, **kwds):
+    def __new__(dict_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with an in-memory dictionary archive backend
 
     Inputs:
+        name: (optional) identifier string [default: None]
         dict: initial dictionary to seed the archive
         cached: if True, use an in-memory cache interface to the archive
         """
         if dict is None: dict = {}
         archive = _dict_archive()
+        archive._id = str(name)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
     pass
 
 class null_archive(_null_archive):
-    def __new__(null_archive, dict=None, cached=True, **kwds):
+    def __new__(null_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a permanently-empty archive backend
 
     Inputs:
+        name: (optional) identifier string [default: None]
         dict: initial dictionary to seed the archive
         cached: if True, use an in-memory cache interface to the archive
         """
         if dict is None: dict = {}
         archive = _null_archive()
+        archive._id = str(name)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
