@@ -775,6 +775,9 @@ def _sqlname(name):
 
 
 if __alchemy:
+  #FIXME: serialized throws RecursionError... but r'\x80' is valid (so is '80')
+  #       however, '\x80' and u'\x80' and b'\x80' are not valid (also not 80)
+  #       NOTE: if __alchemy == False: 80, u'\x80', and b'\\x80' are also VALID
   class sql_archive(dict):
       """dictionary-style interface to a sql database"""
       def __init__(self, database=None, **kwds):
@@ -798,7 +801,11 @@ if __alchemy:
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
           self._database = database
-          url, dbname = self._database.rsplit('/', 1)
+          try:
+              url, dbname = self._database.rsplit('/', 1)
+          except ValueError: # only dbname given
+              url, dbname = 'sqlite://', self._database
+              self._database = "%s/%s" % (url,dbname)
           if url.endswith(":/") or dbname == '': # then no dbname was given
               url = self._database
               dbname = 'defaultdb'
@@ -1109,7 +1116,11 @@ if __alchemy:
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
           self._database = database
-          url, dbname = self._database.rsplit('/', 1)
+          try:
+              url, dbname = self._database.rsplit('/', 1)
+          except ValueError: # only dbname given
+              url, dbname = 'sqlite://', self._database
+              self._database = "%s/%s" % (url,dbname)
           if url.endswith(":/") or dbname == '': # then no dbname was given
               url = self._database
               dbname = 'defaultdb'
@@ -1429,7 +1440,9 @@ else:
           # create table, if doesn't exist
           self._table = table
           if not self._database.startswith('sqlite:///'):
-              raise ValueError("install sqlalchemy for non-sqlite database support")
+              if self._database.count(':')+self._database.count('/'):
+                  raise ValueError("install sqlalchemy for non-sqlite database support")
+              self._database = 'sqlite:///'+self._database
           dbname = self._database.split('sqlite:///')[-1]
           self._conn = db.connect(dbname)
           self._engine = self._conn.cursor()
