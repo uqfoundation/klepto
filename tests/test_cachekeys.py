@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+#
+# Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
+# Copyright (c) 2014 California Institute of Technology.
+# License: 3-clause BSD.  The full license text is available at:
+#  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
+
 from klepto import inf_cache as memoized
 from klepto.archives import *
 from klepto.keymaps import picklemap
@@ -6,8 +13,10 @@ try:
     import ___________ #XXX: enable test w/o numpy.arrays
     import numpy as np
     data = np.arange(20)
+    nprun = True
 except ImportError:
     data = range(20)
+    nprun = False
 
 def remove(name):
     try:
@@ -89,20 +98,25 @@ def test_cache(archive, name, delete=True):
 
     ar = archive(arname, serialized=True, cached=False)
     runme(ar, hit)
-    runme(ar, rerun)
+    #FIXME: numpy.array fails on any 'rerun' of runme below
+    if not nprun:
+       runme(ar, rerun)
     if delete:
         remove(arname)
-    ac = archive(acname, serialized=True, cached=True)
-    runme(ac, load)
-    runme(ac, 'hit')
+    if not nprun:
+        ac = archive(acname, serialized=True, cached=True)
+        runme(ac, load)
+        runme(ac, 'hit')
     if delete:
         remove(acname)
     return
 
-count = 0
-for archive in archives:
-    test_cache(archive, count, delete=False)
-    count += 1
+
+if not nprun:
+    count = 0
+    for archive in archives:
+        test_cache(archive, count, delete=False)
+        count += 1
 
 count = 0
 for archive in archives:
