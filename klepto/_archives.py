@@ -12,6 +12,7 @@ import os
 import sys
 import shutil
 from random import random
+from pickle import PROTO, STOP
 try:
   from collections import KeysView, ValuesView, ItemsView
   _view = getattr(dict, 'viewkeys', False)
@@ -301,71 +302,14 @@ class dir_archive(dict):
         return
     __delitem__.__doc__ = dict.__delitem__.__doc__
     def __getitem__(self, key):
-        _dir = self._getdir(key)
-        if self._serialized:
-            _file = os.path.join(_dir, self._file)
-            try:
-                if self._fast: #XXX: enable override of self._mode ?
-                    memo = _pickle.load(_file, mmap_mode=self._mode)
-                else:
-                    f = open(_file, 'rb')
-                    memo = dill.load(f)
-                    f.close()
-            except: #XXX: should only catch the appropriate exceptions
-                memo = None
-                raise KeyError(key)
-               #raise OSError("error reading directory for '%s'" % key)
-        else:
-            import tempfile
-            base = os.path.basename(_dir) #XXX: PREFIX+key
-            root = os.path.realpath(self._root)
-            name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
-            string = "from %s import memo as %s; sys.modules.pop('%s')" % (base, name, base)
-            try:
-                sys.path.insert(0, root)
-                exec(string, globals()) #FIXME: unsafe, potential name conflict
-                memo = globals().get(name)# None) #XXX: error if not found?
-                globals().pop(name, None)
-            except: #XXX: should only catch the appropriate exceptions
-                raise KeyError(key)
-               #raise OSError("error reading directory for '%s'" % key)
-            finally:
-                sys.path.remove(root)
-        return memo
+        return self._lookup(key)
     __getitem__.__doc__ = dict.__getitem__.__doc__
     def __repr__(self):
         return "dir_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     def __setitem__(self, key, value):
-        _key = TEMP+hash(random(), 'md5')
-        # create a temporary directory, and dump the results
-        try:
-            _file = os.path.join(self._mkdir(_key), self._file)
-            if self._serialized:
-                if self._fast:
-                    _pickle.dump(value, _file, compress=self._compression)
-                else:
-                    f = open(_file, 'wb')
-                    dill.dump(value, f)  #XXX: byref=True ?
-                    f.close()
-            else: # try to get an import for the object
-                try:
-                    memo = getimportable(value, alias='memo', byname=False)
-                except AttributeError: #XXX: HACKY... get classes by name
-                    memo = getimportable(value, alias='memo')
-                #XXX: instances of classes and such fail... abuse pickle here?
-                from .tools import _b
-                open(_file, 'wb').write(_b(memo))
-        except OSError:
-            "failed to populate directory for '%s'" % key
-        # move the results to the proper place
-        try: #XXX: possible permissions issues here
-            self._rmdir(key)
-            os.renames(self._getdir(_key), self._getdir(key))
-#       except TypeError: #XXX: catch key that isn't converted to safe filename
-#           "error in populating directory for '%s'" % key
-        except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
-            "error in populating directory for '%s'" % key
+        self._store(key, value, input=False) # input=True also stores input
+        return
     __setitem__.__doc__ = dict.__setitem__.__doc__
     def clear(self):
         rmtree(self._root, self=False, ignore_errors=True)
@@ -472,9 +416,18 @@ class dir_archive(dict):
     def __len__(self):
         return len(self._lsdir())
 
+    def _fname(self, key):
+        "generate suitable filename for a given key"
+        # special handling for pickles; enable non-strings (however 1=='1')
+        try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
+        except: ispickle = False
+        return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+       ##XXX: below probably fails on windows, and could be huge... use 'md5'
+       #return repr(key)[1:-1] if ispickle else str(key) # or repr?
+
     def _mkdir(self, key):
         "create results subdirectory corresponding to given key"
-        key = str(key) # enable non-strings, however 1=='1' #XXX: better repr?
+        key = self._fname(key)
         try:
             return mkdir(PREFIX+key, root=self._root, mode=self._perm)
         except OSError: # then directory already exists
@@ -482,7 +435,7 @@ class dir_archive(dict):
 
     def _getdir(self, key):
         "get results directory name corresponding to given key"
-        key = str(key) # enable non-strings, however 1=='1' #XXX: better repr?
+        key = self._fname(key)
         return os.path.join(self._root, PREFIX+key)
 
     def _rmdir(self, key):
@@ -492,12 +445,115 @@ class dir_archive(dict):
     def _lsdir(self):
         "get a list of subdirectories in the root directory"
         return walk(self._root,patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
+    def _hasinput(self, root):
+        "check if results subdirectory has stored input file"
+        return bool(walk(root,patterns=self._args,recurse=False,folders=False,files=True,links=False))
+    def _getkey(self, root):
+        "get key given a results subdirectory name"
+        key = os.path.basename(root)[2:]
+        return self._lookup(key,input=True) if self._hasinput(root) else key
     def _keydict(self):
         "get a dict of subdirectories in the root directory, with dummy values"
-        base = os.path.basename
         keys = self._lsdir()
-        return dict((base(key)[2:],None) for key in keys)
+        return dict((self._getkey(key),None) for key in keys)
 
+    def _reverse_lookup(self, args): #XXX: guaranteed 1-to-1 mapping?
+        "get subdirectory name from args"
+        d = {}
+        for key in iter(self._keydict()):
+            try:
+                if args == self._lookup(key, input=True):
+                    d[args] = None #XXX: unnecessarily memory intensive?
+                    break
+            except KeyError:
+                continue
+        # throw KeyError(args) if key not found
+        del d[args]
+        return key
+    def _lookup(self, key, input=False):
+        "get input or output from subdirectory name"
+        _dir = self._getdir(key)
+        if self._serialized:
+            _file = self._args if input else self._file
+            _file = os.path.join(_dir, _file)
+            try:
+                if self._fast: #XXX: enable override of self._mode ?
+                    memo = _pickle.load(_file, mmap_mode=self._mode)
+                else:
+                    f = open(_file, 'rb')
+                    memo = dill.load(f)
+                    f.close()
+            except: #XXX: should only catch the appropriate exceptions
+                memo = None
+                raise KeyError(key)
+               #raise OSError("error reading directory for '%s'" % key)
+        else:
+            import tempfile
+            base = os.path.basename(_dir) #XXX: PREFIX+key
+            root = os.path.realpath(self._root)
+            name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
+            _arg = ".__args__" if input else ""
+            string = "from %s%s import memo as %s; sys.modules.pop('%s')" % (base, _arg, name, base)
+            try:
+                sys.path.insert(0, root)
+                exec(string, globals()) #FIXME: unsafe, potential name conflict
+                memo = globals().get(name)# None) #XXX: error if not found?
+                globals().pop(name, None)
+            except: #XXX: should only catch the appropriate exceptions
+                raise KeyError(key)
+               #raise OSError("error reading directory for '%s'" % key)
+            finally:
+                sys.path.remove(root)
+        return memo
+    def _store(self, key, value, input=False):
+        "store output (and possibly input) in a subdirectory"
+        _key = TEMP+hash(random(), 'md5')
+        # create an input file when key is not suitable directory name
+        if self._fname(key) != key: input=True
+        # create a temporary directory, and dump the results
+        try:
+            _file = os.path.join(self._mkdir(_key), self._file)
+            if input: _args = os.path.join(self._getdir(_key), self._args)
+            if self._serialized:
+                if self._fast:
+                    _pickle.dump(value, _file, compress=self._compression)
+                    if input:
+                        _pickle.dump(key, _args, compress=self._compression)
+                else:
+                    f = open(_file, 'wb')
+                    dill.dump(value, f)  #XXX: byref=True ?
+                    f.close()
+                    if input:
+                        f = open(_args, 'wb')
+                        dill.dump(key, f)
+                        f.close()
+            else: # try to get an import for the object
+                try: memo = getimportable(value, alias='memo', byname=False)
+                except AttributeError: #XXX: HACKY... get classes by name
+                    memo = getimportable(value, alias='memo')
+                #XXX: class instances and such fail... abuse pickle here?
+                from .tools import _b
+                open(_file, 'wb').write(_b(memo))
+                if input:
+                    try: memo = getimportable(key, alias='memo', byname=False)
+                    except AttributeError:
+                        memo = getimportable(key, alias='memo')
+                    from .tools import _b
+                    open(_args, 'wb').write(_b(memo))
+        except OSError:
+            "failed to populate directory for '%s'" % key
+        # move the results to the proper place
+        try: #XXX: possible permissions issues here
+            self._rmdir(key) #XXX: 'key' must be a suitable dir name
+            os.renames(self._getdir(_key), self._getdir(key))
+#       except TypeError: #XXX: catch key that isn't converted to safe filename
+#           "error in populating directory for '%s'" % key
+        except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
+            "error in populating directory for '%s'" % key
+
+    def _get_args(self):
+        if self._serialized: return 'input.pkl'
+        return '__args__.py'
     def _get_file(self):
         if self._serialized: return 'output.pkl'
         return '__init__.py'
@@ -533,6 +589,7 @@ class dir_archive(dict):
     archive = property(__get_archive, __archive)
     name = property(__get_name, __archive)
     _file = property(_get_file, _set_file)
+    _args = property(_get_args, _set_file)
     pass
 
 

@@ -29,7 +29,7 @@ hash.__doc__ = \
 """cryptographic hashing
 
     algorithm: one of %s
-    The default is algorithm=Nonei, which uses python's 'hash'.""" % repr(algorithms())
+    The default is algorithm=None, which uses python's 'hash'.""" % repr(algorithms())
 
 
 def encodings():
