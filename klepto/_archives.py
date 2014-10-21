@@ -625,6 +625,7 @@ class file_archive(dict):
         if filename is None:
             if serialized: filename = 'memo.pkl' #FIXME: need better default
             else: filename = 'memo.py' #FIXME: need better default
+        elif not serialized and not filename.endswith(('.py','.pyc','.pyo','.pyd')): filename = filename+'.py'
         # set state
         self.__state__ = {
             'filename': filename,
@@ -654,8 +655,8 @@ class file_archive(dict):
             file = os.path.basename(filename)
             root = os.path.realpath(filename).rstrip(file)[:-1]
             curdir = os.path.realpath(os.curdir)
-            file = file.rstrip('.py') or file.rstrip('.pyc') \
-                or file.rstrip('.pyo') or file.rstrip('.pyd')
+            if file.endswith(('.py','.pyc','.pyo','.pyd')):
+                file = file.rsplit('.',1)[0]
             name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
             os.chdir(root)
             string = "from %s import memo as %s; sys.modules.pop('%s')" % (file, name, file)
