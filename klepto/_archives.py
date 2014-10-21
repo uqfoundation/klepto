@@ -50,6 +50,7 @@ class cache(dict):
         self.__swap__ = null_archive()
         self.__archive__ = kwds.pop('archive', null_archive())
         dict.__init__(self, *args, **kwds)
+       #self.__state__ = {}
         return
     def __repr__(self):
         archive = self.archive.__class__.__name__
@@ -133,6 +134,14 @@ class cache(dict):
 
 class dict_archive(dict):
     """dictionary with an archive interface"""
+    def __init__(self, *args, **kwds):
+        """initialize a dictionary archive"""
+        name = kwds.pop('__magic_key_0192837465__', None)
+        dict.__init__(self, *args, **kwds)
+        self.__state__ = {
+            'id': name # can be used to store a 'name'
+        }
+        return
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
         return self.copy()
@@ -140,7 +149,6 @@ class dict_archive(dict):
         return "dict_archive(%s, cached=False)" % (self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
-    _id = None # can be used to store a 'name'
     def load(self, *args):
         """does nothing. required to use an archive as a cache"""
         return
@@ -163,7 +171,7 @@ class dict_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return self._id
+        return self.__state__['id']
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -173,9 +181,13 @@ class dict_archive(dict):
 
 class null_archive(dict):
     """dictionary interface to nothing -- it's always empty"""
-    def __init__(self):
+    def __init__(self, *args, **kwds):
         """initialize a permanently-empty dictionary"""
+        name = kwds.pop('__magic_key_0192837465__', None)
         dict.__init__(self)
+        self.__state__ = {
+            'id': name # can be used to store a 'name'
+        }
         return
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
@@ -193,7 +205,6 @@ class null_archive(dict):
         return "null_archive(cached=False)"
     __repr__.__doc__ = dict.__repr__.__doc__
     # interface
-    _id = None # can be used to store a 'name'
     def load(self, *args):
         """does nothing. required to use an archive as a cache"""
         return
@@ -216,7 +227,7 @@ class null_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return self._id
+        return self.__state__['id']
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -226,13 +237,14 @@ class null_archive(dict):
 
 class dir_archive(dict):
     """dictionary-style interface to a folder of files"""
-    def __init__(self, dirname=None, serialized=True, compression=0, **kwds):
+    def __init__(self, dirname=None, serialized=True, compression=0, permissions=None, **kwds):
         """initialize a file folder with a synchronized dictionary interface
 
     Inputs:
         dirname: name of the root archive directory [default: memo]
         serialized: if True, pickle file contents; otherwise save python objects
         compression: compression level (0 to 9) [default: 0 (no compression)]
+        permissions: octal representing read/write permissions [default: 0o775]
         memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
         memsize: approximate size (in MB) of cache for in-memory compression
         """
@@ -243,30 +255,39 @@ class dir_archive(dict):
         """dirname = full filepath"""
         if dirname is None: #FIXME: default root as /tmp or something better
             dirname = 'memo' #FIXME: need better default
-        # undocumented: set file permissions (takes an octal)
-        self._perm = kwds.get('permissions', None)
-        # undocumented: True=joblib-style, False=dill-style pickling
-        self._fast = kwds.get('fast', False)
-        #
-        self._serialized = serialized
-        self._compression = compression
-        self._mode = kwds.get('memmode', None)
-        self._size = kwds.get('memsize', 100)
+        # set state
+        self.__state__ = {
+            # undocumented: True=joblib-style, False=dill-style pickling
+            'fast': kwds.get('fast', False),
+            # settings
+            'serialized': serialized,
+            'compression': compression,
+            'permissions': permissions,
+            'memmode': kwds.get('memmode', None),
+            'memsize': kwds.get('memsize', 100), # unused?
+            'root': dirname
+        }
         # if not serialized, then set fast=False
-        if not self._serialized:
-            self._compression = 0
-            self._mode = None
-            self._fast = False
+        if not serialized:
+            self.__state__['compression'] = 0
+            self.__state__['memmode'] = None
+            self.__state__['fast'] = False
         # if compression or mode, then set fast=True
-        elif self._compression or self._mode:
-            self._fast = True
+        elif compression or self.__state__['memmode']:
+            self.__state__['fast'] = True
         # ELSE: use dill if fast=False, else use _pickle
-
         try:
-            self._root = mkdir(dirname, mode=self._perm)
+            self.__state__['root'] = mkdir(dirname, mode=self.__state__['permissions'])
         except OSError: # then directory already exists
-            self._root = os.path.abspath(dirname)
+            self.__state__['root'] = os.path.abspath(dirname)
         return
+    def __reduce__(self):
+        dirname = self.name
+        serial = self.__state__['serialized']
+        compress = self.__state__['compression']
+        perm = self.__state__['permissions']
+        state = {'__state__': self.__state__}
+        return (self.__class__, (dirname, serial, compress, perm), state)
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
         # get the names of all directories in the directory
@@ -312,18 +333,16 @@ class dir_archive(dict):
         return
     __setitem__.__doc__ = dict.__setitem__.__doc__
     def clear(self):
-        rmtree(self._root, self=False, ignore_errors=True)
+        rmtree(self.__state__['root'], self=False, ignore_errors=True)
         return
     clear.__doc__ = dict.clear.__doc__
     def copy(self, name=None): #XXX: always None? or allow other settings?
         "D.copy(name) -> a copy of D, with a new archive at the given name"
-        if name is None: name = self._root
-        else: shutil.copytree(self._root, os.path.abspath(name))#XXX: overwrite?
-        adict = {'permissions':self._perm, 'fast':self._fast,\
-                 'memmode':self._mode, 'compression':self._compression,\
-                 'serialized':self._serialized, 'memsize':self._size,\
-                 'dirname':name}
-        adict = dir_archive(**adict)
+        if name is None:
+            name = self.__state__['root']
+        else: #XXX: overwrite?
+            shutil.copytree(self.__state__['root'], os.path.abspath(name))
+        adict = dir_archive(dirname=name, **self.__state__)
        #adict.update(self.__asdict__())
         return adict
     def fromkeys(self, *args): #XXX: build a dict (not an archive)?
@@ -429,14 +448,14 @@ class dir_archive(dict):
         "create results subdirectory corresponding to given key"
         key = self._fname(key)
         try:
-            return mkdir(PREFIX+key, root=self._root, mode=self._perm)
+            return mkdir(PREFIX+key, root=self.__state__['root'], mode=self.__state__['permissions'])
         except OSError: # then directory already exists
             return self._getdir(key)
 
     def _getdir(self, key):
         "get results directory name corresponding to given key"
         key = self._fname(key)
-        return os.path.join(self._root, PREFIX+key)
+        return os.path.join(self.__state__['root'], PREFIX+key)
 
     def _rmdir(self, key):
         "remove results subdirectory corresponding to given key"
@@ -444,7 +463,7 @@ class dir_archive(dict):
         return
     def _lsdir(self):
         "get a list of subdirectories in the root directory"
-        return walk(self._root,patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
+        return walk(self.__state__['root'],patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
     def _hasinput(self, root):
         "check if results subdirectory has stored input file"
         return bool(walk(root,patterns=self._args,recurse=False,folders=False,files=True,links=False))
@@ -473,12 +492,12 @@ class dir_archive(dict):
     def _lookup(self, key, input=False):
         "get input or output from subdirectory name"
         _dir = self._getdir(key)
-        if self._serialized:
+        if self.__state__['serialized']:
             _file = self._args if input else self._file
             _file = os.path.join(_dir, _file)
             try:
-                if self._fast: #XXX: enable override of self._mode ?
-                    memo = _pickle.load(_file, mmap_mode=self._mode)
+                if self.__state__['fast']: #XXX: enable override of 'mode' ?
+                    memo = _pickle.load(_file, mmap_mode=self.__state__['memmode'])
                 else:
                     f = open(_file, 'rb')
                     memo = dill.load(f)
@@ -490,7 +509,7 @@ class dir_archive(dict):
         else:
             import tempfile
             base = os.path.basename(_dir) #XXX: PREFIX+key
-            root = os.path.realpath(self._root)
+            root = os.path.realpath(self.__state__['root'])
             name = tempfile.mktemp(prefix="_____", dir="").replace("-","_")
             _arg = ".__args__" if input else ""
             string = "from %s%s import memo as %s; sys.modules.pop('%s')" % (base, _arg, name, base)
@@ -514,11 +533,11 @@ class dir_archive(dict):
         try:
             _file = os.path.join(self._mkdir(_key), self._file)
             if input: _args = os.path.join(self._getdir(_key), self._args)
-            if self._serialized:
-                if self._fast:
-                    _pickle.dump(value, _file, compress=self._compression)
-                    if input:
-                        _pickle.dump(key, _args, compress=self._compression)
+            if self.__state__['serialized']:
+                if self.__state__['fast']:
+                    compression = self.__state__['compression']
+                    _pickle.dump(value, _file, compress=compression)
+                    if input: _pickle.dump(key, _args, compress=compression)
                 else:
                     f = open(_file, 'wb')
                     dill.dump(value, f)  #XXX: byref=True ?
@@ -552,10 +571,10 @@ class dir_archive(dict):
             "error in populating directory for '%s'" % key
 
     def _get_args(self):
-        if self._serialized: return 'input.pkl'
+        if self.__state__['serialized']: return 'input.pkl'
         return '__args__.py'
     def _get_file(self):
-        if self._serialized: return 'output.pkl'
+        if self.__state__['serialized']: return 'output.pkl'
         return '__init__.py'
     def _set_file(self, file):
         raise NotImplementedError("cannot set attribute '_file'")
@@ -583,7 +602,7 @@ class dir_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return os.path.basename(self._root)
+        return os.path.basename(self.__state__['root'])
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -606,25 +625,34 @@ class file_archive(dict):
         if filename is None:
             if serialized: filename = 'memo.pkl' #FIXME: need better default
             else: filename = 'memo.py' #FIXME: need better default
-        self._filename = filename
-        self._serialized = serialized
+        # set state
+        self.__state__ = {
+            'filename': filename,
+            'serialized': serialized
+        }
         if not os.path.exists(filename):
             self.__save__({})
         return
+    def __reduce__(self):
+        fname = self.__state__['filename']
+        serial = self.__state__['serialized']
+       #state = {'__state__': self.__state__}
+        return (self.__class__, (fname, serial))#, state)
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
-        if self._serialized:
+        filename = self.__state__['filename']
+        if self.__state__['serialized']:
             try:
-                f = open(self._filename, 'rb')
+                f = open(filename, 'rb')
                 memo = dill.load(f)
                 f.close()
             except:
                 memo = {}
-               #raise OSError("error reading file archive %s" % self._filename)
+               #raise OSError("error reading file archive %s" % filename)
         else:
             import tempfile
-            file = os.path.basename(self._filename)
-            root = os.path.realpath(self._filename).rstrip(file)[:-1]
+            file = os.path.basename(filename)
+            root = os.path.realpath(filename).rstrip(file)[:-1]
             curdir = os.path.realpath(os.curdir)
             file = file.rstrip('.py') or file.rstrip('.pyc') \
                 or file.rstrip('.pyo') or file.rstrip('.pyd')
@@ -637,17 +665,18 @@ class file_archive(dict):
                 globals().pop(name, None)
             except: #XXX: should only catch appropriate exceptions
                 memo = {}
-               #raise OSError("error reading file archive %s" % self._filename)
+               #raise OSError("error reading file archive %s" % filename)
             finally:
                 os.chdir(curdir)
         return memo
     def __save__(self, memo=None):
         """create an archive from the given dictionary"""
         if memo == None: return
+        filename = self.__state__['filename']
         _filename = TEMP+hash(random(), 'md5')
         # create a temporary file, and dump the results
         try:
-            if self._serialized:
+            if self.__state__['serialized']:
                 f = open(_filename, 'wb')
                 dill.dump(memo, f)  #XXX: byref=True ?
                 f.close()
@@ -655,15 +684,15 @@ class file_archive(dict):
                 from .tools import _b
                 open(_filename, 'wb').write(_b('memo = %s' % repr(memo)))
         except OSError:
-            "failed to populate file for %s" % self._filename
+            "failed to populate file for %s" % filename
         # move the results to the proper place
         try:
-            os.remove(self._filename)
+            os.remove(filename)
         except: pass
         try:
-            os.renames(_filename, self._filename)
+            os.renames(_filename, filename)
         except OSError:
-            "error in populating %s" % self._filename
+            "error in populating %s" % filename
         return
     #FIXME: missing __cmp__, __...__
     def __eq__(self, y):
@@ -701,9 +730,10 @@ class file_archive(dict):
     clear.__doc__ = dict.clear.__doc__
     def copy(self, name=None): #XXX: always None? or allow other settings?
         "D.copy(name) -> a copy of D, with a new archive at the given name"
-        if name is None: name = self._filename
-        else: shutil.copy2(self._filename, name)#XXX: overwrite?
-        adict = {'serialized':self._serialized, 'filename':name}
+        filename = self.__state__['filename']
+        if name is None: name = filename
+        else: shutil.copy2(filename, name) #XXX: overwrite?
+        adict = {'serialized':self.__state__['serialized'], 'filename':name}
         adict = file_archive(**adict)
        #adict.update(self.__asdict__())
         return adict
@@ -808,7 +838,7 @@ class file_archive(dict):
     def __get_archive(self):
         return self
     def __get_name(self):
-        return os.path.basename(self._filename)
+        return os.path.basename(self.__state__['filename'])
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
     archive = property(__get_archive, __archive)
@@ -853,43 +883,47 @@ if __alchemy:
           database: url of the database backend [default: sqlite:///:memory:]
           serialized: if True, pickle table contents; otherwise cast as strings
           """
-          self._serialized = bool(kwds.pop('serialized', True))
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
-          self._database = database
+          _database = database
           try:
-              url, dbname = self._database.rsplit('/', 1)
+              url, dbname = database.rsplit('/', 1)
           except ValueError: # only dbname given
-              url, dbname = 'sqlite://', self._database
-              self._database = "%s/%s" % (url,dbname)
+              url, dbname = 'sqlite://', database
+              _database = "%s/%s" % (url,dbname)
           if url.endswith(":/") or dbname == '': # then no dbname was given
-              url = self._database
+              url = _database
               dbname = 'defaultdb'
-              self._database = "%s/%s" % (url,dbname)
+              _database = "%s/%s" % (url,dbname)
+          # set state
+          self.__state__ = {
+              'serialized': bool(kwds.pop('serialized', True)),
+              'database': _database,
+              # preserve other settings (for copy)
+              'config': kwds.copy()
+          } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
           # get engine
           if dbname == ':memory:':
               self._engine = create_engine(url, **kwds)
-          elif self._database.startswith('sqlite'):
-              self._engine = create_engine(self._database, **kwds)
+          elif _database.startswith('sqlite'):
+              self._engine = create_engine(_database, **kwds)
           else:
               self._engine = create_engine(url) #XXX: **kwds ?
               try:
                   conn = self._engine.connect()
-                  if self._database.startswith('postgres'):
+                  if _database.startswith('postgres'):
                       conn.connection.connection.set_isolation_level(0)
                   conn.execute("CREATE DATABASE %s;" % dbname)
               except Exception: pass
               finally:
-                  if self._database.startswith('postgres'):
+                  if _database.startswith('postgres'):
                       conn.connection.connection.set_isolation_level(1)
               try:
                   self._engine.execute("USE %s;" % dbname)
               except Exception:
                   pass
-              self._engine = create_engine(self._database, **kwds)
-          # preserve settings (for copy)
-          self.__config__ = kwds.copy()
+              self._engine = create_engine(_database, **kwds)
           # table internals
           self._metadata = MetaData()
           self._key = 'Kkeyqwg907' # primary key name
@@ -906,23 +940,24 @@ if __alchemy:
       to permission issues. Caller may need to be connected as a superuser
       and database owner.
           """
-          url, dbname = self._database.rsplit('/', 1)
+          _database = self.__state__['database']
+          url, dbname = _database.rsplit('/', 1)
           self._engine = create_engine(url)
           try:
               conn = self._engine.connect()
-              if self._database.startswith('postgres'):
+              if _database.startswith('postgres'):
                   # these two commands require superuser privs
                   conn.execute("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname)
                   conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname) # 'pid' used in postgresql >= 9.2
                   conn.connection.connection.set_isolation_level(0)
               conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
-              if self._database.startswith('postgres'):
+              if _database.startswith('postgres'):
                   conn.connection.connection.set_isolation_level(1)
           except Exception:
-              dbpath = self._database.split('///')[-1]
+              dbpath = _database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
-          self._metadata = self._engine = self._table = None
+          self._metadata = self._engine = None # self.__state__['table']=None
           return
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
@@ -981,8 +1016,8 @@ if __alchemy:
           "D.copy(name) -> a copy of D, with a new archive at the given name"
           if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
-          adict = {'serialized':self._serialized, 'database':name}
-          adict.update(self.__config__)
+          adict = {'serialized':self.__state__['serialized'], 'database':name}
+          adict.update(self.__state__['config'])
           adict = sql_archive(**adict)#FIXME: should reference, not copy
           adict.update(self.__asdict__())
           return adict
@@ -1079,7 +1114,7 @@ if __alchemy:
           except KeyError: table = key # table doesn't exist in metadata
           # prepare table types #XXX: do in __init__ ?
           keytype = String(255)
-          if self._serialized: valtype = PickleType(pickler=dill)
+          if self.__state__['serialized']: valtype = PickleType(pickler=dill)
           else: valtype = Text()
           # create table, if doesn't exist
           table = Table(table, self._metadata,
@@ -1142,7 +1177,7 @@ if __alchemy:
       def __get_archive(self):
           return self
       def __get_name(self):
-          return self._database
+          return self.__state__['database']
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
       archive = property(__get_archive, __archive)
@@ -1168,52 +1203,58 @@ if __alchemy:
           table: name of the associated database table [default: 'memo']
           serialized: if True, pickle table contents; otherwise cast as strings
           """
-          self._serialized = bool(kwds.pop('serialized', True))
+          if table is None: table = 'memo' #XXX: better random unique id ?
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
-          self._database = database
+          _database = database
           try:
-              url, dbname = self._database.rsplit('/', 1)
+              url, dbname = _database.rsplit('/', 1)
           except ValueError: # only dbname given
-              url, dbname = 'sqlite://', self._database
-              self._database = "%s/%s" % (url,dbname)
+              url, dbname = 'sqlite://', _database
+              _database = "%s/%s" % (url,dbname)
           if url.endswith(":/") or dbname == '': # then no dbname was given
-              url = self._database
+              url = _database
               dbname = 'defaultdb'
-              self._database = "%s/%s" % (url,dbname)
+              _database = "%s/%s" % (url,dbname)
+          # set state
+          self.__state__ = {
+              'serialized': bool(kwds.pop('serialized', True)),
+              'database': _database,
+              'table': table,
+              # preserve other settings (for copy)
+              'config': kwds.copy()
+          } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
+          # get engine
           if dbname == ':memory:':
               self._engine = create_engine(url, **kwds)
-          elif self._database.startswith('sqlite'):
-              self._engine = create_engine(self._database, **kwds)
+          elif _database.startswith('sqlite'):
+              self._engine = create_engine(_database, **kwds)
           else:
               self._engine = create_engine(url) #XXX: **kwds ?
               try:
                   conn = self._engine.connect()
-                  if self._database.startswith('postgres'):
+                  if _database.startswith('postgres'):
                       conn.connection.connection.set_isolation_level(0)
                   conn.execute("CREATE DATABASE %s;" % dbname)
               except Exception: pass
               finally:
-                  if self._database.startswith('postgres'):
+                  if _database.startswith('postgres'):
                       conn.connection.connection.set_isolation_level(1)
               try:
                   self._engine.execute("USE %s;" % dbname)
               except Exception:
                   pass
-              self._engine = create_engine(self._database, **kwds)
+              self._engine = create_engine(_database, **kwds)
           # prepare to create table
           self._metadata = MetaData()
           self._key = 'Kkey' # primary key name
           self._val = 'Kval' # object storage name
           keytype = String(255) #XXX: other better fixed size?
-          if self._serialized:
+          if self.__state__['serialized']:
               valtype = PickleType(pickler=dill)
           else:
               valtype = Text() #XXX: String(255) or BLOB() ???
-          if table is None: table = 'memo' #XXX: better random unique id ?
-          # preserve settings (for copy)
-          self.__config__ = kwds.copy()
           # create table, if doesn't exist
           if isinstance(table, str): #XXX: better str-variants ? or no if ?
               table = Table(table, self._metadata,
@@ -1221,7 +1262,7 @@ if __alchemy:
                   Column(self._val, valtype)
               )
           self._key = table.c[self._key]
-          self._table = table
+          self.__state__['table'] = table
           # initialize
           self._metadata.create_all(self._engine)
           return
@@ -1234,30 +1275,31 @@ if __alchemy:
       To drop associated database, use __drop__(database=True)
           """
           if not bool(kwds.get('database', False)):
-              self._table.drop(self._engine) #XXX: optionally delete data ?
-              self._metadata.remove(self._table)
-              self._metadata = self._engine = self._table = None
+              self.__state__['table'].drop(self._engine) #XXX: or delete data ?
+              self._metadata.remove(self.__state__['table'])
+              self._metadata = self._engine = self.__state__['table'] = None
               return
-          url, dbname = self._database.rsplit('/', 1)
+          _database = self.__state__['database']
+          url, dbname = _database.rsplit('/', 1)
           self._engine = create_engine(url)
           try:
               conn = self._engine.connect()
-              if self._database.startswith('postgres'):
+              if _database.startswith('postgres'):
                   # these two commands require superuser privs
                   conn.execute("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname)
                   conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname) # 'pid' used in postgresql >= 9.2
                   conn.connection.connection.set_isolation_level(0)
               conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
-              if self._database.startswith('postgres'):
+              if _database.startswith('postgres'):
                   conn.connection.connection.set_isolation_level(1)
           except Exception:
-              dbpath = self._database.split('///')[-1]
+              dbpath = _database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
-          self._metadata = self._engine = self._table = None
+          self._metadata = self._engine = self.__state__['table'] = None
           return
       def __len__(self):
-          query = self._table.count()
+          query = self.__state__['table'].count()
           return int(self._engine.execute(query).scalar())
       def __contains__(self, key):
           query = select([self._key], self._key == key)
@@ -1266,13 +1308,14 @@ if __alchemy:
       __contains__.__doc__ = dict.__contains__.__doc__
       def __setitem__(self, key, value):
           value = {self._val: value} #XXX: force into single item dict...?
+          table = self.__state__['table']
           if key in self:
               values = value
-              query = self._table.update().where(self._key == key)
+              query = table.update().where(self._key == key)
           else:
               values = {self._key.name: key}
               values.update(value)
-              query = self._table.insert()
+              query = table.insert()
           self._engine.execute(query.values(**values))
           return
       __setitem__.__doc__ = dict.__setitem__.__doc__
@@ -1303,7 +1346,7 @@ if __alchemy:
           return
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
-          query = select([self._table], self._key == key)
+          query = select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row is None: raise KeyError(key)
           return row[self._val]
@@ -1315,7 +1358,7 @@ if __alchemy:
               yield row[0]
       __iter__.__doc__ = dict.__iter__.__doc__
       def get(self, key, value=None):
-          query = select([self._table], self._key == key)
+          query = select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]
@@ -1323,12 +1366,12 @@ if __alchemy:
           return _value
       get.__doc__ = dict.get.__doc__
       def clear(self):
-          query = self._table.delete()
+          query = self.__state__['table'].delete()
           self._engine.execute(query)
           return
       clear.__doc__ = dict.clear.__doc__
      #def insert(self, d): #XXX: don't allow this method, or hide ?
-     #    query = self._table.insert(d)
+     #    query = self.__state__['table'].insert(d)
      #    self._engine.execute(query)
      #    return
       def copy(self, name=None): #XXX: always None? or allow other settings?
@@ -1336,8 +1379,9 @@ if __alchemy:
           if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
           db,table = _sqlname(name)
-          adict = {'serialized':self._serialized, 'database':db, 'table':table}
-          adict.update(self.__config__)
+          adict = {'serialized': self.__state__['serialized'],\
+                   'database': db, 'table': table}
+          adict.update(self.__state__['config'])
           adict = sqltable_archive(**adict) #FIXME: should reference, not copy
           adict.update(self.__asdict__())
           return adict
@@ -1354,12 +1398,12 @@ if __alchemy:
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           def has_key(self, key): #XXX: different than contains... why?
-              query = select([self._table], self._key == key)
+              query = select([self.__state__['table']], self._key == key)
               row = self._engine.execute(query).fetchone()
               return row != None
           has_key.__doc__ = dict.has_key.__doc__
           def iteritems(self): #XXX: should be dictionary-itemiterator
-              query = select([self._table])
+              query = select([self.__state__['table']])
               result = self._engine.execute(query)
               for row in result:
                   yield (row[0], row[self._val])
@@ -1367,7 +1411,7 @@ if __alchemy:
           iterkeys = __iter__
           iterkeys.__doc__ = dict.iterkeys.__doc__
           def itervalues(self): #XXX: should be dictionary-valueiterator
-              query = select([self._table])
+              query = select([self.__state__['table']])
               result = self._engine.execute(query)
               for row in result:
                   yield row[self._val]
@@ -1402,14 +1446,14 @@ if __alchemy:
           L = len(value)
           if L > 1:
               raise TypeError("pop expected at most 2 arguments, got %s" % str(L+1))
-          query = select([self._table], self._key == key)
+          query = select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]
           else:
               if not L: raise KeyError(key)
               _value = value[0]
-          query = delete(self._table, self._key == key)
+          query = delete(self.__state__['table'], self._key == key)
           self._engine.execute(query)
           return _value
       pop.__doc__ = dict.pop.__doc__
@@ -1423,7 +1467,7 @@ if __alchemy:
           L = len(value)
           if L > 1:
               raise TypeError("setvalue expected at most 2 arguments, got %s" % str(L+1))
-          query = select([self._table], self._key == key)
+          query = select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]
@@ -1463,7 +1507,7 @@ if __alchemy:
       def __get_archive(self):
           return self
       def __get_name(self):
-          return "%s?table=%s" % (self._database, self._table)
+          return "%s?table=%s" % (self.__state__['database'], self.__state__['table'])
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
       archive = property(__get_archive, __archive)
@@ -1488,19 +1532,26 @@ else:
           table: name of the associated database table [default: 'memo']
           """
           import sqlite3 as db
+          if table is None: table = 'memo'
+          # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
-          self._database = database
-          if table is None: table = 'memo'
-          # preserve settings (for copy)
-          self.__config__ = kwds.copy()
-          # create table, if doesn't exist
-          self._table = table
-          if not self._database.startswith('sqlite:///'):
-              if self._database.count(':')+self._database.count('/'):
+          _database = database
+          if not _database.startswith('sqlite:///'):
+              if _database.count(':')+_database.count('/'):
                   raise ValueError("install sqlalchemy for non-sqlite database support")
-              self._database = 'sqlite:///'+self._database
-          dbname = self._database.split('sqlite:///')[-1]
+              _database = 'sqlite:///'+_database
+          dbname = _database.split('sqlite:///')[-1]
+          # set state
+          kwds.pop('serialized', True) # 'serialized' is not available
+          self.__state__ = {
+              'serialized': False,
+              'database': _database,
+              'table': table,
+              # preserve other settings (for copy)
+              'config': kwds.copy()
+          } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
+          # create table, if doesn't exist
           self._conn = db.connect(dbname)
           self._engine = self._conn.cursor()
           sql = "create table if not exists %s(argstr, fval)" % table
@@ -1519,18 +1570,19 @@ else:
       To drop associated database, use __drop__(database=True)
           """
           if not bool(kwds.get('database', False)):
-              self._engine.executescript('drop table if exists %s;' % self._table)
-              self._engine = self._conn = self._table = None
+              self._engine.executescript('drop table if exists %s;' % self.__state__['table'])
+              self._engine = self._conn = self.__state__['table'] = None
               return
+          _database = self.__state__['database']
           try:
-              dbname = self._database.lstrip('sqlite:///')
+              dbname = _database.lstrip('sqlite:///')
               conn = db.connect(':memory:')
               conn.execute("DROP DATABASE %s;" % dbname) #FIXME: always fails
           except Exception:
-              dbpath = self._database.split('///')[-1]
+              dbpath = _database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
-          self._engine = self._conn = self._table = None
+          self._engine = self._conn = self.__state__['table'] = None
           return
       def __len__(self):
           return len(self.__asdict__())
@@ -1538,7 +1590,7 @@ else:
           return bool(self._select_key_items(key))
       __contains__.__doc__ = dict.__contains__.__doc__
       def __setitem__(self, key, value): #XXX: maintains 'history' of values
-          sql = "insert into %s values(?,?)" % self._table
+          sql = "insert into %s values(?,?)" % self.__state__['table']
           self._engine.execute(sql, (key,value))
           self._conn.commit()
           return
@@ -1575,7 +1627,7 @@ else:
           raise KeyError(key)
       __getitem__.__doc__ = dict.__getitem__.__doc__
       def __iter__(self): #XXX: should be dictionary-keyiterator
-          sql = "select argstr from %s" % self._table
+          sql = "select argstr from %s" % self.__state__['table']
           return (k[-1] for k in set(self._engine.execute(sql)))
       __iter__.__doc__ = dict.__iter__.__doc__
       def get(self, key, value=None):
@@ -1592,8 +1644,9 @@ else:
           if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
           db,table = _sqlname(name)
-          adict = {'serialized':self._serialized, 'database':db, 'table':table}
-          adict.update(self.__config__)
+          adict = {'serialized': self.__state__['serialized'],\
+                   'database': db, 'table': table}
+          adict.update(self.__state__['config'])
           adict = sqltable_archive(**adict) #FIXME: should reference, not copy
           adict.update(self.__asdict__())
           return adict
@@ -1602,7 +1655,7 @@ else:
       fromkeys.__doc__ = dict.fromkeys.__doc__
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
-          sql = "select * from %s" % self._table
+          sql = "select * from %s" % self.__state__['table']
           res = self._engine.execute(sql)
           d = {}
           [d.update({k:v}) for (k,v) in res] # always get the last one
@@ -1657,7 +1710,7 @@ else:
           else:
               if not L: raise KeyError(key)
               _value = value[0]
-          sql = "delete from %s where argstr = ?" % self._table
+          sql = "delete from %s where argstr = ?" % self.__state__['table']
           self._engine.execute(sql, (key,))
           self._conn.commit()
           return _value 
@@ -1690,7 +1743,7 @@ else:
       update.__doc__ = dict.update.__doc__
       def _select_key_items(self, key):
           '''Return a tuple of (key, value) pairs that match the specified key'''
-          sql = "select * from %s where argstr = ?" % self._table
+          sql = "select * from %s where argstr = ?" % self.__state__['table']
           return tuple(self._engine.execute(sql, (key,)))
       # interface
       def load(self, *args):
@@ -1715,7 +1768,7 @@ else:
       def __get_archive(self):
           return self
       def __get_name(self):
-          return "%s?table=%s" % (self._database, self._table)
+          return "%s?table=%s" % (self.__state__['database'], self.__state__['table'])
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
       archive = property(__get_archive, __archive)

@@ -31,7 +31,7 @@ class dict_archive(_dict_archive):
         """
         if dict is None: dict = {}
         archive = _dict_archive()
-        archive._id = str(name)
+        archive.__state__['id'] = str(name)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
@@ -48,7 +48,7 @@ class null_archive(_null_archive):
         """
         if dict is None: dict = {}
         archive = _null_archive()
-        archive._id = str(name)
+        archive.__state__['id'] = str(name)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
