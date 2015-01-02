@@ -6,7 +6,7 @@
 
 # Forked by: Mike McKerns (December 2013)
 # Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
-# Copyright (c) 2013-2014 California Institute of Technology.
+# Copyright (c) 2013-2015 California Institute of Technology.
 # License: 3-clause BSD.  The full license text is available at:
 #  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
 """
