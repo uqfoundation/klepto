@@ -274,13 +274,13 @@ exec(setup_code)
 try:
     import dill
     import pox
-    import sqlalchemy
+   #import sqlalchemy
 except ImportError:
     print ("\n***********************************************************")
     print ("WARNING: One of the following dependencies is unresolved:")
     print ("    dill %s" % dill_version)
     print ("    pox %s" % pox_version)
-    print ("    sqlalchemy %s" % sqlalchemy_version)
+   #print ("    sqlalchemy %s" % sqlalchemy_version)
     print ("***********************************************************\n")
 
 
