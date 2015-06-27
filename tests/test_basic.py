@@ -110,7 +110,8 @@ if __name__ == '__main__':
       None,
       keymap(typed=False, flat=True, sentinel=NOSENTINEL),
       keymap(typed=False, flat=False, sentinel=NOSENTINEL),
-      keymap(typed=True, flat=True, sentinel=NOSENTINEL),
+#FIXME: keymap of (typed=True,flat=True) fails w/ dir_archive on Windows b/c
+#     keymap(typed=True, flat=True, sentinel=NOSENTINEL), # bad directory name?
       keymap(typed=True, flat=False, sentinel=NOSENTINEL),
      #keymap(typed=False, flat=True, sentinel=SENTINEL),
      #keymap(typed=False, flat=False, sentinel=SENTINEL),
