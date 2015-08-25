@@ -182,5 +182,76 @@ _pkey4 = dill.dumps(_key4)
 _pkey3 = dill.dumps(_key3)
 assert add.__cache__() == {_pkey4: 4, _pkey3: 3}
 
+from klepto import lru_cache
+
+@lru_cache(maxsize=3, cache=dict_archive('test'), purge=True)
+def identity(x):
+  return x
+
+identity(1)
+identity(2)
+identity(3)
+ic = identity.__cache__()
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 0
+identity(4)
+assert len(ic.keys()) == 0
+assert len(ic.archive.keys()) == 4
+identity(5)
+assert len(ic.keys()) == 1
+assert len(ic.archive.keys()) == 4
+
+@lru_cache(maxsize=3, cache=dict_archive('test'), purge=False)
+def inverse(x):
+  return -x
+
+inverse(1)
+inverse(2)
+inverse(3)
+ic = inverse.__cache__()
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 0
+inverse(4)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 1
+inverse(5)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 2
+
+@lru_cache(maxsize=3, cache=dict_archive('test', cached=False))
+def foo(x):
+  return x
+
+foo(1)
+foo(2)
+foo(3)
+ic = foo.__cache__()
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 3
+foo(4)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 3
+foo(5)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 3
+
+#XXX: should it be 'correct' expected behavior to ignore purge?
+@lru_cache(maxsize=3, cache=None, purge=True)
+def bar(x):
+  return -x
+
+bar(1)
+bar(2)
+bar(3)
+ic = bar.__cache__()
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 0
+bar(4)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 0
+bar(5)
+assert len(ic.keys()) == 3
+assert len(ic.archive.keys()) == 0
+
 
 # EOF
