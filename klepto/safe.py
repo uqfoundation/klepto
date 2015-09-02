@@ -554,7 +554,9 @@ class lfu_cache(object):
                                               iter(use_count.items()),
                                               key=itemgetter(1)):
                             if cache.archived(): cache.dump(k)
-                            del cache[k], use_count[k]
+                            try: del cache[k]
+                            except KeyError: pass #FIXME: possible less purged
+                            use_count.pop(k, None)
             except: #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
@@ -794,7 +796,9 @@ class lru_cache(object):
                             key = queue_popleft()
                             refcount[key] -= 1
                         if cache.archived(): cache.dump(key)
-                        del cache[key], refcount[key]
+                        try: del cache[key]
+                        except KeyError: pass #FIXME: possible none purged
+                        refcount.pop(key, None)
             except: #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
@@ -1001,7 +1005,8 @@ class mru_cache(object):
             try:
                 # get cache entry
                 result = cache[key]
-                queue.remove(key)
+                try: queue.remove(key)
+                except ValueError: pass
                 stats[HIT] += 1
             except KeyError:
                 # if not in cache, look in archive
@@ -1024,9 +1029,10 @@ class mru_cache(object):
                         cache.clear() 
                         queue.clear()
                     else: # purge most recently used cache entry
-                        key = queue_pop()
-                        if cache.archived(): cache.dump(key)
-                        del cache[key]
+                        k = queue_pop()
+                        if cache.archived(): cache.dump(k)
+                        try: del cache[k]
+                        except KeyError: pass #FIXME: possible none purged
             except: #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
@@ -1243,7 +1249,8 @@ class rr_cache(object):
                     else: # purge random cache entry
                         key = choice(list(cache.keys()))
                         if cache.archived(): cache.dump(key)
-                        del cache[key]
+                        try: del cache[key]
+                        except KeyError: pass #FIXME: possible none purged
             except: #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1

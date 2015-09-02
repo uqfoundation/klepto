@@ -123,5 +123,89 @@ if __name__ == '__main__':
    #                                 rangelimit=20, tries=100, archived=True))
    #    print (msg)
 
+   ### again, w/o purging ###
+
+    # clean-up
+    if os.path.exists('cache.pkl'): os.remove('cache.pkl')
+
+   #print ("WITHOUT ARCHIVE")
+    results = [_test_hits(cache, maxsize=50,
+                          rangelimit=20, tries=100) for cache in caches]
+    x = results[0]
+    maxsize = x.maxsize
+    if PY32:
+        assert x.size == x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,90,0,50,50)
+    x = results[1]
+    if PY32:
+        assert x.size == x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (10,90,0,50,50)
+    x = results[2]
+    if PY32:
+        assert x.size == x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (15,85,0,50,50)
+    x = results[3]
+    if PY32:
+        assert x.size <= x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,89,0,50,49)
+    x = results[4]
+    if PY32:
+        assert x.size > maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (15,85,0,None,85)
+    x = results[5]
+    assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,100,0,0,0)
+   #for cache in caches:
+   #    msg = cache.__name__ + ":"
+   #    msg += "%s" % str(_test_hits(cache, maxsize=50, 
+   #                                 rangelimit=20, tries=100))
+   #    print (msg)
+
+   #print ("\nWITH ARCHIVE")
+    results = [_test_hits(cache, maxsize=50, rangelimit=20,
+                          tries=100, archived=True) for cache in caches]
+    # clean-up
+    if os.path.exists('cache.pkl'): os.remove('cache.pkl')
+
+    x = results[0]
+    if PY32:
+        assert x.size <= x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (1,96,3,50,48)
+    x = results[1]
+    if PY32:
+        assert x.size <= x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (7,62,31,50,42)
+    x = results[2]
+    if PY32:
+        assert x.size <= x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (8,48,44,50,41)
+    x = results[3]
+    if PY32:
+        assert x.size <= x.maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (5,38,57,50,44)
+    x = results[4]
+    if PY32:
+        assert x.size > maxsize # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (14,25,61,None,86)
+    x = results[5]
+    if PY32:
+        assert x.hit == x.maxsize == x.size # skip due to hash randomization
+    else:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (0,31,69,0,0)
+   #for cache in caches:
+   #    msg = cache.__name__ + ":"
+   #    msg += "%s" % str(_test_hits(cache, maxsize=50,
+   #                                 rangelimit=20, tries=100, archived=True))
+   #    print (msg)
+
 
 # EOF
