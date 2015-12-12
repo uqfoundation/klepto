@@ -19,12 +19,15 @@ try:
   _view = True if _view else False # True if 2.7
 except ImportError:
   _view = False
+import imp
 try:
-  from sqlalchemy import create_engine, delete, select, Column, MetaData, Table
-  from sqlalchemy.types import PickleType, String, Text#, BLOB
-  __alchemy = True
+  imp.find_module('sqlalchemy')
+  sql = True
+  def __import_hook__():
+      global sql
+      import sqlalchemy as sql
 except ImportError:
-  __alchemy = False
+  sql = None
 import dill
 from dill.source import getimportable
 from pox import mkdir, rmtree, walk
@@ -862,10 +865,11 @@ def _sqlname(name):
     return (db, table)
 
 
-if __alchemy:
+if sql:
   #FIXME: serialized throws RecursionError... but r'\x80' is valid (so is '80')
   #       however, '\x80' and u'\x80' and b'\x80' are not valid (also not 80)
-  #       NOTE: if __alchemy == False: 80, u'\x80', and b'\\x80' are also VALID
+  #       NOTE: if sql == False: 80, u'\x80', and b'\\x80' are also VALID
+
   class sql_archive(dict):
       """dictionary-style interface to a sql database"""
       def __init__(self, database=None, **kwds):
@@ -884,6 +888,7 @@ if __alchemy:
           database: url of the database backend [default: sqlite:///:memory:]
           serialized: if True, pickle table contents; otherwise cast as strings
           """
+          __import_hook__()
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
@@ -906,11 +911,11 @@ if __alchemy:
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
           # get engine
           if dbname == ':memory:':
-              self._engine = create_engine(url, **kwds)
+              self._engine = sql.create_engine(url, **kwds)
           elif _database.startswith('sqlite'):
-              self._engine = create_engine(_database, **kwds)
+              self._engine = sql.create_engine(_database, **kwds)
           else:
-              self._engine = create_engine(url) #XXX: **kwds ?
+              self._engine = sql.create_engine(url) #XXX: **kwds ?
               try:
                   conn = self._engine.connect()
                   if _database.startswith('postgres'):
@@ -924,9 +929,9 @@ if __alchemy:
                   self._engine.execute("USE %s;" % dbname)
               except Exception:
                   pass
-              self._engine = create_engine(_database, **kwds)
+              self._engine = sql.create_engine(_database, **kwds)
           # table internals
-          self._metadata = MetaData()
+          self._metadata = sql.MetaData()
           self._key = 'Kkeyqwg907' # primary key name
           self._val = 'Kvalmol142' # object storage name
           # discover all tables #FIXME: with matching self._key
@@ -943,7 +948,7 @@ if __alchemy:
           """
           _database = self.__state__['database']
           url, dbname = _database.rsplit('/', 1)
-          self._engine = create_engine(url)
+          self._engine = sql.create_engine(url)
           try:
               conn = self._engine.connect()
               if _database.startswith('postgres'):
@@ -983,7 +988,7 @@ if __alchemy:
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key): #XXX: value is table['key','key']; slow?
           table = self._gettable(key)
-          query = select([table], table.c[self._key] == self._key) #XXX: slow?
+          query = sql.select([table],table.c[self._key] == self._key)#XXX: slow?
           row = self._engine.execute(query).fetchone()
           if row is None:
               raise RuntimeError("primary key for '%s' not found" % key)
@@ -1114,13 +1119,14 @@ if __alchemy:
           try: return self._gettable(key, meta=True) # table exists
           except KeyError: table = key # table doesn't exist in metadata
           # prepare table types #XXX: do in __init__ ?
-          keytype = String(255)
-          if self.__state__['serialized']: valtype = PickleType(pickler=dill)
-          else: valtype = Text()
+          keytype = sql.String(255)
+          if self.__state__['serialized']:
+              valtype = sql.PickleType(pickler=dill)
+          else: valtype = sql.Text()
           # create table, if doesn't exist
-          table = Table(table, self._metadata,
-              Column(self._key, keytype, primary_key=True),
-              Column(self._val, valtype)
+          table = sql.Table(table, self._metadata,
+              sql.Column(self._key, keytype, primary_key=True),
+              sql.Column(self._val, valtype)
           )
           # initialize
           self._metadata.create_all(self._engine)
@@ -1204,6 +1210,7 @@ if __alchemy:
           table: name of the associated database table [default: 'memo']
           serialized: if True, pickle table contents; otherwise cast as strings
           """
+          __import_hook__()
           if table is None: table = 'memo' #XXX: better random unique id ?
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
@@ -1228,11 +1235,11 @@ if __alchemy:
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
           # get engine
           if dbname == ':memory:':
-              self._engine = create_engine(url, **kwds)
+              self._engine = sql.create_engine(url, **kwds)
           elif _database.startswith('sqlite'):
-              self._engine = create_engine(_database, **kwds)
+              self._engine = sql.create_engine(_database, **kwds)
           else:
-              self._engine = create_engine(url) #XXX: **kwds ?
+              self._engine = sql.create_engine(url) #XXX: **kwds ?
               try:
                   conn = self._engine.connect()
                   if _database.startswith('postgres'):
@@ -1246,21 +1253,21 @@ if __alchemy:
                   self._engine.execute("USE %s;" % dbname)
               except Exception:
                   pass
-              self._engine = create_engine(_database, **kwds)
+              self._engine = sql.create_engine(_database, **kwds)
           # prepare to create table
-          self._metadata = MetaData()
+          self._metadata = sql.MetaData()
           self._key = 'Kkey' # primary key name
           self._val = 'Kval' # object storage name
-          keytype = String(255) #XXX: other better fixed size?
+          keytype = sql.String(255) #XXX: other better fixed size?
           if self.__state__['serialized']:
-              valtype = PickleType(pickler=dill)
+              valtype = sql.PickleType(pickler=dill)
           else:
-              valtype = Text() #XXX: String(255) or BLOB() ???
+              valtype = sql.Text() #XXX: String(255) or BLOB() ???
           # create table, if doesn't exist
           if isinstance(table, str): #XXX: better str-variants ? or no if ?
-              table = Table(table, self._metadata,
-                  Column(self._key, keytype, primary_key=True),
-                  Column(self._val, valtype)
+              table = sql.Table(table, self._metadata,
+                  sql.Column(self._key, keytype, primary_key=True),
+                  sql.Column(self._val, valtype)
               )
           self._key = table.c[self._key]
           self.__state__['table'] = table
@@ -1282,7 +1289,7 @@ if __alchemy:
               return
           _database = self.__state__['database']
           url, dbname = _database.rsplit('/', 1)
-          self._engine = create_engine(url)
+          self._engine = sql.create_engine(url)
           try:
               conn = self._engine.connect()
               if _database.startswith('postgres'):
@@ -1303,7 +1310,7 @@ if __alchemy:
           query = self.__state__['table'].count()
           return int(self._engine.execute(query).scalar())
       def __contains__(self, key):
-          query = select([self._key], self._key == key)
+          query = sql.select([self._key], self._key == key)
           row = self._engine.execute(query).fetchone()
           return row is not None
       __contains__.__doc__ = dict.__contains__.__doc__
@@ -1347,19 +1354,19 @@ if __alchemy:
           return
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
-          query = select([self.__state__['table']], self._key == key)
+          query = sql.select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row is None: raise KeyError(key)
           return row[self._val]
       __getitem__.__doc__ = dict.__getitem__.__doc__
       def __iter__(self): #XXX: should be dictionary-keyiterator
-          query = select([self._key])
+          query = sql.select([self._key])
           result = self._engine.execute(query)
           for row in result:
               yield row[0]
       __iter__.__doc__ = dict.__iter__.__doc__
       def get(self, key, value=None):
-          query = select([self.__state__['table']], self._key == key)
+          query = sql.select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]
@@ -1399,12 +1406,12 @@ if __alchemy:
       __repr__.__doc__ = dict.__repr__.__doc__
       if getattr(dict, 'has_key', None):
           def has_key(self, key): #XXX: different than contains... why?
-              query = select([self.__state__['table']], self._key == key)
+              query = sql.select([self.__state__['table']], self._key == key)
               row = self._engine.execute(query).fetchone()
               return row != None
           has_key.__doc__ = dict.has_key.__doc__
           def iteritems(self): #XXX: should be dictionary-itemiterator
-              query = select([self.__state__['table']])
+              query = sql.select([self.__state__['table']])
               result = self._engine.execute(query)
               for row in result:
                   yield (row[0], row[self._val])
@@ -1412,7 +1419,7 @@ if __alchemy:
           iterkeys = __iter__
           iterkeys.__doc__ = dict.iterkeys.__doc__
           def itervalues(self): #XXX: should be dictionary-valueiterator
-              query = select([self.__state__['table']])
+              query = sql.select([self.__state__['table']])
               result = self._engine.execute(query)
               for row in result:
                   yield row[self._val]
@@ -1447,14 +1454,14 @@ if __alchemy:
           L = len(value)
           if L > 1:
               raise TypeError("pop expected at most 2 arguments, got %s" % str(L+1))
-          query = select([self.__state__['table']], self._key == key)
+          query = sql.select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]
           else:
               if not L: raise KeyError(key)
               _value = value[0]
-          query = delete(self.__state__['table'], self._key == key)
+          query = sql.delete(self.__state__['table'], self._key == key)
           self._engine.execute(query)
           return _value
       pop.__doc__ = dict.pop.__doc__
@@ -1468,7 +1475,7 @@ if __alchemy:
           L = len(value)
           if L > 1:
               raise TypeError("setvalue expected at most 2 arguments, got %s" % str(L+1))
-          query = select([self.__state__['table']], self._key == key)
+          query = sql.select([self.__state__['table']], self._key == key)
           row = self._engine.execute(query).fetchone()
           if row != None:
               _value = row[self._val]

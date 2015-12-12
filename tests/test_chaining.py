@@ -12,6 +12,7 @@ p = picklemap(serializer='dill')
 hp = p + h
 assert p(1) == pickle(1, serializer='dill')
 assert h(1) == 'c4ca4238a0b923820dcc509a6f75849b'
+import sys
 if sys.version_info[0] == 2:
     assert hp(1) == 'ee7f32117eab97ec5460313282938c93'
 else: #XXX: different, because 3.x returns b'' while 2.x returns ''
