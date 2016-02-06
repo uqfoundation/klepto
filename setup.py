@@ -9,7 +9,7 @@ from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
-stable_version = '0.1.1'
+stable_version = '0.1.2'
 target_version = '0.1.2'
 is_release = False
 

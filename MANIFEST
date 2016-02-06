@@ -19,6 +19,7 @@ tests/test_basic.py
 tests/test_bigdata.py
 tests/test_cache.py
 tests/test_cache_info.py
+tests/test_cachekeys.py
 tests/test_chaining.py
 tests/test_crypto.py
 tests/test_ignore.py
