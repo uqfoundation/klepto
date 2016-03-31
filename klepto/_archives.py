@@ -269,7 +269,7 @@ class dir_archive(dict):
             'memmode': kwds.get('memmode', None),
             'memsize': kwds.get('memsize', 100), # unused?
             'root': dirname
-        }
+        } #XXX: add 'cloud' option?
         # if not serialized, then set fast=False
         if not serialized:
             self.__state__['compression'] = 0
@@ -633,7 +633,7 @@ class file_archive(dict):
         self.__state__ = {
             'filename': filename,
             'serialized': serialized
-        }
+        } #XXX: add 'cloud' option?
         if not os.path.exists(filename):
             self.__save__({})
         return
@@ -903,7 +903,7 @@ if sql:
               dbname = 'defaultdb'
               _database = "%s/%s" % (url,dbname)
           # set state
-          self.__state__ = {
+          self.__state__ = { #XXX: add 'cloud' option?
               'serialized': bool(kwds.pop('serialized', True)),
               'database': _database,
               # preserve other settings (for copy)
@@ -1226,7 +1226,7 @@ if sql:
               dbname = 'defaultdb'
               _database = "%s/%s" % (url,dbname)
           # set state
-          self.__state__ = {
+          self.__state__ = { #XXX: add 'cloud' option?
               'serialized': bool(kwds.pop('serialized', True)),
               'database': _database,
               'table': table,
