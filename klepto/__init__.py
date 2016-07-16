@@ -43,7 +43,7 @@ def license():
 
 def citation():
     """print citation"""
-    print (__doc__[-247:-106])
+    print (__doc__[-230:-89])
     return
 
 del absolute_import
