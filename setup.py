@@ -11,7 +11,7 @@ import os
 # set version numbers
 stable_version = '0.1.2'
 target_version = '0.1.3'
-is_release = False
+is_release = stable_version == target_version
 
 # check if easy_install is available
 try:
@@ -243,14 +243,22 @@ setup(name='klepto',
       description='persistent caching to memory, disk, or database',
       long_description = '''%s''',
       author = 'Mike McKerns',
+      author_email = 'mmckerns at uqfoundation dot org',
       maintainer = 'Mike McKerns',
-      maintainer_email = 'mmckerns@uqfoundation.org',
-      license = 'BSD',
-      platforms = ['any'],
-      url = 'http://www.cacr.caltech.edu/~mmckerns',
-      classifiers = ('Intended Audience :: Developers',
-                     'Programming Language :: Python',
-                     'Topic :: Physics Programming'),
+      maintainer_email = 'mmckerns at uqfoundation dot org',
+      license = '3-clause BSD',
+      platforms = ['Linux', 'Windows', 'Mac'],
+      url = 'http://www.cacr.caltech.edu/~mmckerns/klepto.htm',
+      download_url = 'http://dev.danse.us/packages',
+      classifiers = ('Development Status :: 5 - Production/Stable',
+                     'Intended Audience :: Developers',
+                     'Intended Audience :: Science/Research',
+                     'License :: OSI Approved :: BSD License',
+                     'Programming Language :: Python :: 2',
+                     'Programming Language :: Python :: 3',
+                     'Topic :: Database',
+                     'Topic :: Scientific/Engineering',
+                     'Topic :: Software Development'),
 
       packages = ['klepto'],
       package_dir = {'klepto':'klepto'},
