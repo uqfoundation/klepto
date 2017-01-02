@@ -60,6 +60,8 @@ def _cleanup():
     except: pass
     try: pox.rmtree('memoz')
     except: pass
+    try: pox.rmtree('memo')
+    except: pass
     return
 
 
