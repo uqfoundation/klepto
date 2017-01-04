@@ -138,7 +138,9 @@ add(1,3)
 #print ("sql_cache = %s" % add.__cache__())
 _key4 = '((), '+str({'y':3, 'x':1})+')'
 _key3 = '((), '+str({'y':2, 'x':1})+')'
-assert add.__cache__() == {_key4: 4, _key3: 3}
+key4_ = '((), '+str({'x':1, 'y':3})+')'
+key3_ = '((), '+str({'x':1, 'y':2})+')'
+assert add.__cache__() == {_key4: 4, _key3: 3} or {key4_: 4, key3_: 3}
 
 @memoized(cache=dict_archive(cached=False)) # use archive backend 'direcly'
 def add(x,y):
@@ -147,9 +149,7 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("dict_cache = %s" % add.__cache__())
-_key4 = '((), '+str({'y':3, 'x':1})+')'
-_key3 = '((), '+str({'y':2, 'x':1})+')'
-assert add.__cache__() == {_key4: 4, _key3: 3}
+assert add.__cache__() == {_key4: 4, _key3: 3} or {key4_: 4, key3_: 3}
 
 @memoized(cache=dict())
 def add(x,y):
@@ -158,7 +158,7 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("dict_cache = %s" % add.__cache__())
-assert add.__cache__() == {_key4: 4, _key3: 3}
+assert add.__cache__() == {_key4: 4, _key3: 3} or {key4_: 4, key3_: 3}
 
 @memoized(cache=add.__cache__())
 def add(x,y):
@@ -167,7 +167,8 @@ add(1,2)
 add(2,2)
 #print ("re_dict_cache = %s" % add.__cache__())
 _key2 = '((), '+str({'y':2, 'x':2})+')'
-assert add.__cache__() == {_key4: 4, _key3: 3, _key2: 4}
+key2_ = '((), '+str({'x':2, 'y':2})+')'
+assert add.__cache__() == {_key4: 4, _key3: 3, _key2: 4} or {key4_: 4, key3_: 3, key2_: 4}
 
 @memoized(keymap=dumps)
 def add(x,y):
@@ -176,11 +177,11 @@ add(1,2)
 add(1,2)
 add(1,3)
 #print ("pickle_dict_cache = %s" % add.__cache__())
-_key4 = eval(_key4)
-_key3 = eval(_key3)
-_pkey4 = dill.dumps(_key4)
-_pkey3 = dill.dumps(_key3)
-assert add.__cache__() == {_pkey4: 4, _pkey3: 3}
+_pkey4 = dill.dumps(eval(_key4))
+_pkey3 = dill.dumps(eval(_key3))
+pkey4_ = dill.dumps(eval(key4_))
+pkey3_ = dill.dumps(eval(key3_))
+assert add.__cache__() == {_pkey4: 4, _pkey3: 3} or {pkey4_: 4, pkey3_: 3}
 
 from klepto import lru_cache
 
