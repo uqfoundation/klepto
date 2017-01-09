@@ -9,68 +9,66 @@
 from klepto.archives import dir_archive
 from pox import rmtree
 
-# start fresh
-rmtree('foo', ignore_errors=True)
+def test_foo():
+    # start fresh
+    rmtree('foo', ignore_errors=True)
 
-
-d = dir_archive('foo', cached=False)
-key = '1234TESTMETESTMETESTME1234'
-d._mkdir(key)
-#XXX: repeat mkdir does nothing, should it clear?  I think not.
-_dir = d._mkdir(key)
-assert d._getdir(key) == _dir
-d._rmdir(key)
-
-# with _pickle
-x = [1,2,3,4,5]
-d._fast = True
-d[key] = x
-assert d[key] == x
-d._rmdir(key)
-
-# with dill
-d._fast = False
-d[key] = x
-assert d[key] == x
-d._rmdir(key)
-
-# with import
-d._serialized = False
-d[key] = x
-assert d[key] == x
-d._rmdir(key)
-d._serialized = True
-
-
-try: 
-    import numpy as np
-    y = np.array(x)
+    d = dir_archive('foo', cached=False)
+    key = '1234TESTMETESTMETESTME1234'
+    d._mkdir(key)
+    #XXX: repeat mkdir does nothing, should it clear?  I think not.
+    _dir = d._mkdir(key)
+    assert d._getdir(key) == _dir
+    d._rmdir(key)
 
     # with _pickle
+    x = [1,2,3,4,5]
     d._fast = True
-    d[key] = y
-    assert all(d[key] == y)
+    d[key] = x
+    assert d[key] == x
     d._rmdir(key)
 
     # with dill
     d._fast = False
-    d[key] = y
-    assert all(d[key] == y)
+    d[key] = x
+    assert d[key] == x
     d._rmdir(key)
 
     # with import
     d._serialized = False
-    d[key] = y
-    assert all(d[key] == y)
+    d[key] = x
+    assert d[key] == x
     d._rmdir(key)
     d._serialized = True
 
-except ImportError:
-    pass
+    try: 
+        import numpy as np
+        y = np.array(x)
 
+        # with _pickle
+        d._fast = True
+        d[key] = y
+        assert all(d[key] == y)
+        d._rmdir(key)
 
-# clean up
-rmtree('foo')
+        # with dill
+        d._fast = False
+        d[key] = y
+        assert all(d[key] == y)
+        d._rmdir(key)
+
+        # with import
+        d._serialized = False
+        d[key] = y
+        assert all(d[key] == y)
+        d._rmdir(key)
+        d._serialized = True
+
+    except ImportError:
+        pass
+
+    # clean up
+    rmtree('foo')
 
 # check archiving basic stuff
 def check_basic(archive):
@@ -113,31 +111,34 @@ def check_numpy(archive):
 # FIXME: add tests for classes and class instances as values
 # FIXME: add tests for non-string keys (e.g. d[1234] = 'hello')
 
-# try some of the different __init__
-archive = dir_archive(cached=False)
-check_basic(archive)
-check_numpy(archive)
-#rmtree('memo')
+def test_archive():
+    # try some of the different __init__
+    archive = dir_archive(cached=False)
+    check_basic(archive)
+    check_numpy(archive)
+    #rmtree('memo')
 
-archive = dir_archive(cached=False,fast=True)
-check_basic(archive)
-check_numpy(archive)
-#rmtree('memo')
+    archive = dir_archive(cached=False,fast=True)
+    check_basic(archive)
+    check_numpy(archive)
+    #rmtree('memo')
 
-archive = dir_archive(cached=False,compression=3)
-check_basic(archive)
-check_numpy(archive)
-#rmtree('memo')
+    archive = dir_archive(cached=False,compression=3)
+    check_basic(archive)
+    check_numpy(archive)
+    #rmtree('memo')
 
-archive = dir_archive(cached=False,memmode='r+')
-check_basic(archive)
-check_numpy(archive)
-#rmtree('memo')
+    archive = dir_archive(cached=False,memmode='r+')
+    check_basic(archive)
+    check_numpy(archive)
+    #rmtree('memo')
 
-archive = dir_archive(cached=False,serialized=False)
-check_basic(archive)
-check_numpy(archive)
-rmtree('memo')
+    archive = dir_archive(cached=False,serialized=False)
+    check_basic(archive)
+    check_numpy(archive)
+    rmtree('memo')
 
 
-# EOF
+if __name__ == '__main__':
+    test_foo()
+    test_archive()
