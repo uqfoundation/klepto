@@ -32,13 +32,13 @@ def _test_hits(algorithm, maxsize=20, keymap=None,
     return f.info()
 
 
-if __name__ == '__main__':
+import os 
+import sys
+from klepto import *
+#from klepto.safe import *
 
-    import os 
-    import sys
+def test_info():
     PY32 = ( hex(sys.hexversion) >= '0x30200f0' )
-    from klepto import *
-   #from klepto.safe import *
     seed(1234) # random seed
 
     caches = [rr_cache,mru_cache,lru_cache,lfu_cache,inf_cache,no_cache]
@@ -209,4 +209,5 @@ if __name__ == '__main__':
    #    print (msg)
 
 
-# EOF
+if __name__ == '__main__':
+   test_info()

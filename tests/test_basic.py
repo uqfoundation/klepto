@@ -66,11 +66,11 @@ def _cleanup():
     return
 
 
-if __name__ == '__main__':
+from klepto.archives import *
+from klepto.keymaps import keymap, hashmap, stringmap, picklemap
+from klepto.keymaps import SENTINEL, NOSENTINEL
 
-    from klepto.archives import *
-    from klepto.keymaps import keymap, hashmap, stringmap, picklemap
-    from klepto.keymaps import SENTINEL, NOSENTINEL
+def test_combinations():
     seed(1234) # random seed
 
     #XXX: archive/cache should allow scalar and list, also dict (as new table) ?
@@ -157,4 +157,5 @@ if __name__ == '__main__':
             assert f.info().hit + f.info().miss + f.info().load == N
 
 
-# EOF
+if __name__ == '__main__':
+    test_combinations()
