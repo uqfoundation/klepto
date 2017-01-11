@@ -12,6 +12,7 @@ from klepto.keymaps import hashmap
 from klepto import NULL
 from klepto import signature, keygen
 from klepto import _keygen, isvalid
+from klepto.tools import IS_PYPY
 
 def bar(x,y,z,a=1,b=2,*args):
   return x+y+z+a+b
@@ -172,13 +173,22 @@ def test_special():
     p2 = partial(add, z=0)
     p3 = partial(add, 0)
 
-    assert signature(min, safe=True) == (None, None, None, None)
+    
+    if IS_PYPY: # builtins in PYPY are python functions
+        assert signature(pow, safe=True) == (('base', 'exponent', 'modulus'), {'modulus': None}, '', '')
+    else:
+        assert signature(pow, safe=True) == (None, None, None, None)
     assert signature(p, safe=True) == (None, None, None, None)
     assert signature(p2, safe=True) == (('x', 'y'), {'z': 0}, '', '')
     assert signature(p3, safe=True) == (('y',), {'!x': 0}, '', '')
-    assert isvalid(min, 0,1) == True
-    assert isvalid(min, 0) == False
-    assert isvalid(min) == False
+    if IS_PYPY: # PYPY bug in ArgSpec for min, so use pow
+        assert isvalid(pow, 0,1) == True
+        assert isvalid(pow, 0) == False
+        assert isvalid(pow) == False
+    else: # python >= 3.5 bug in ArgSpec for pow, so use min
+        assert isvalid(min, 0,1) == True
+        assert isvalid(min, 0) == False
+        assert isvalid(min) == False
     assert isvalid(p, 0,1) == False
     assert isvalid(p, 0) == False
     assert isvalid(p) == False
@@ -196,8 +206,8 @@ def test_special():
     assert _keygen(min, [], 0) == ((0,), {})
     assert _keygen(min, 'x', 0) == ((0,), {})
     assert _keygen(min, ['x','y'], 0) == ((0,), {})
-    assert _keygen(min, [0,1], 0) == ((0,), {})
-    assert _keygen(min, ['*'], 0) == ((0,), {})
+    assert _keygen(min, [0,1], 0) == ((NULL,), {}) if IS_PYPY else ((0,), {})
+    assert _keygen(min, ['*'], 0) == ((), {}) if IS_PYPY else ((0,), {})
 
 
 if __name__ == '__main__':

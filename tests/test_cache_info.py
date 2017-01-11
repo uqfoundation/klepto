@@ -11,6 +11,7 @@ test speed and effectiveness of a selection of cache algorithms
 
 from klepto.archives import file_archive
 from random import choice, seed
+from klepto.tools import IS_PYPY
 
 def _test_hits(algorithm, maxsize=20, keymap=None,
                rangelimit=5, tries=1000, archived=False):
@@ -151,6 +152,8 @@ def test_info():
     x = results[3]
     if PY32:
         assert x.size <= x.maxsize # skip due to hash randomization
+    elif IS_PYPY:
+        assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (8,92,0,50,47)
     else:
         assert (x.hit, x.miss, x.load, x.maxsize, x.size) == (11,89,0,50,49)
     x = results[4]

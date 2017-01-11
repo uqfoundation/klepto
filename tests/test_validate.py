@@ -29,7 +29,7 @@ def test_partial_foo_xy():
     #print(re_2)
     assert res1 == re_1
     if hex(sys.hexversion).startswith('0x207'):
-        assert str(res2) == str(TypeError("foo() takes at most 5 arguments (7 given)"))
+        assert str(res2)[:20] == str(TypeError("foo() takes at most 5 arguments (7 given)"))[:20] # PYPY TypeError is slightly different
     elif hex(sys.hexversion) < '0x30300f0': # all versions slightly different
         assert str(res2)[:20] == str(re_2)[:20]
     else:
@@ -69,7 +69,7 @@ def test_partial_foo_xy():
     #print(re_2)
     assert res1 == re_1
     if hex(sys.hexversion).startswith('0x207'):
-        assert str(res2) == str(TypeError("foo() takes at most 5 arguments (7 given)"))
+        assert str(res2)[:20] == str(TypeError("foo() takes at most 5 arguments (7 given)"))[:20] # PYPY TypeError is slightly different
     elif hex(sys.hexversion) < '0x30300f0': # all versions slightly different
         assert str(res2)[:20] == str(re_2)[:20]
     else:
@@ -135,7 +135,7 @@ def test_partial_foo_xzb():
     #print(re_2)
     assert res1 == re_1
     if hex(sys.hexversion).startswith('0x207'):
-        assert str(res2) == str(TypeError("foo() takes at least 3 arguments (3 given)"))
+        assert str(res2)[:20] == str(TypeError("foo() takes at least 3 arguments (3 given)"))[:20] # PYPY TypeError is slightly different
     elif hex(sys.hexversion) < '0x30300f0': # all versions slightly different
         assert str(res2)[:21] == str(re_2)[:21]
     else:
@@ -177,7 +177,7 @@ def test_partial_foo_xa():
     #print(re_2)
     assert res1 == re_1
     if hex(sys.hexversion).startswith('0x207'):
-        assert str(res2) == str(TypeError("foo() takes at least 3 arguments (3 given)"))
+        assert str(res2)[:20] == str(TypeError("foo() takes at least 3 arguments (3 given)"))[:20] # PYPY TypeError is slightly different
     elif hex(sys.hexversion) < '0x30300f0': # all versions slightly different
         assert str(res2)[:21] == str(re_2)[:21]
     else:

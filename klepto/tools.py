@@ -16,6 +16,13 @@ Main functions exported are::
 from __future__ import absolute_import
 
 try:
+    import ctypes
+    # if using `pypy`, pythonapi is not found
+    IS_PYPY = not hasattr(ctypes, 'pythonapi')
+except ImportError:
+    IS_PYPY = False
+
+try:
     from collections import namedtuple
 except ImportError:
     from ._namedtuple import namedtuple

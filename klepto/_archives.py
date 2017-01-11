@@ -556,13 +556,17 @@ class dir_archive(dict):
                     memo = getimportable(value, alias='memo')
                 #XXX: class instances and such fail... abuse pickle here?
                 from .tools import _b
-                open(_file, 'wb').write(_b(memo))
+                f = open(_file, 'wb')
+                f.write(_b(memo))
+                f.close()
                 if input:
                     try: memo = getimportable(key, alias='memo', byname=False)
                     except AttributeError:
                         memo = getimportable(key, alias='memo')
                     from .tools import _b
-                    open(_args, 'wb').write(_b(memo))
+                    f = open(_args, 'wb')
+                    f.write(_b(memo))
+                    f.close()
         except OSError:
             "failed to populate directory for '%s'" % key
         # move the results to the proper place
