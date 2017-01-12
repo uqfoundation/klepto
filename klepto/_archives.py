@@ -682,7 +682,7 @@ class file_archive(dict):
         """create an archive from the given dictionary"""
         if memo == None: return
         filename = self.__state__['filename']
-        _filename = TEMP+hash(random(), 'md5')
+        _filename = os.path.join(os.path.dirname(os.path.abspath(filename)), TEMP+hash(random(), 'md5'))
         # create a temporary file, and dump the results
         try:
             if self.__state__['serialized']:
