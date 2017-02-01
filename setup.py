@@ -10,7 +10,7 @@ from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
-stable_version = '0.1.2'
+stable_version = '0.1.3'
 target_version = '0.1.3'
 is_release = stable_version == target_version
 
@@ -173,7 +173,7 @@ Requirements
 
 `klepto` requires::
 
-    - python2, version >= 2.5  *or*  python3, version >= 3.1
+    - python2, version >= 2.5  *or*  python3, version >= 3.1  *or*  pypy
     - dill, version >= 0.2.6
     - pox, version >= 0.2.3
 
