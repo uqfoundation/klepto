@@ -175,7 +175,7 @@ Requirements
 
     - python2, version >= 2.5  *or*  python3, version >= 3.1
     - dill, version >= 0.2.5
-    - pox, version >= 0.2.2
+    - pox, version >= 0.2.3
 
 Optional requirements::
 
@@ -267,7 +267,7 @@ setup(name='klepto',
 
 # add dependencies
 dill_version = '>=0.2.5'
-pox_version = '>=0.2.2'
+pox_version = '>=0.2.3'
 sqlalchemy_version = '>=0.8.4'
 import sys
 if has_setuptools:
