@@ -280,7 +280,7 @@ class stringmap(keymap):
         """use a non-flat scheme for generating a key"""
         return string(keymap.encrypt(self, *args, **kwds), encoding=self.__type__, **self._config)
 
-class picklemap(keymap)
+class picklemap(keymap):
     """tool for converting a function's input signature to an unique key
 
     This keymap serializes objects by pickling the object.  Serializing an
