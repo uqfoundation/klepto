@@ -80,11 +80,14 @@ class keymap(object):
             self._fasttypes = (int,str,bytes,frozenset,type(None))
         except NameError:
             self._fasttypes = (int,str,frozenset,type(None))
-        self._fasttypes = kwds.get('fasttypes', set(self._fasttypes))
-        self._sorted = kwds.get('sorted', sorted)
-        self._tuple = kwds.get('tuple', tuple)
-        self._type = kwds.get('type', type)
-        self._len = kwds.get('len', len)
+        self._fasttypes = kwds.pop('fasttypes', set(self._fasttypes))
+        self._sorted = kwds.pop('sorted', sorted)
+        self._tuple = kwds.pop('tuple', tuple)
+        self._type = kwds.pop('type', type)
+        self._len = kwds.pop('len', len)
+
+        # the rest of the kwds are for customizaton of the encoder
+        self._config = kwds.copy()
         return
 
     def __get_outer(self):
@@ -233,10 +236,10 @@ class hashmap(keymap):
         return
     def encode(self, *args, **kwds):
         """use a flattened scheme for generating a key"""
-        return hash(keymap.encode(self, *args, **kwds), algorithm=self.__type__)
+        return hash(keymap.encode(self, *args, **kwds), algorithm=self.__type__, **self._config)
     def encrypt(self, *args, **kwds):
         """use a non-flat scheme for generating a key"""
-        return hash(keymap.encrypt(self, *args, **kwds), algorithm=self.__type__)
+        return hash(keymap.encrypt(self, *args, **kwds), algorithm=self.__type__, **self._config)
 
 class stringmap(keymap):
     """tool for converting a function's input signature to an unique key
@@ -272,12 +275,12 @@ class stringmap(keymap):
         return
     def encode(self, *args, **kwds):
         """use a flattened scheme for generating a key"""
-        return string(keymap.encode(self, *args, **kwds), encoding=self.__type__)
+        return string(keymap.encode(self, *args, **kwds), encoding=self.__type__, **self._config)
     def encrypt(self, *args, **kwds):
         """use a non-flat scheme for generating a key"""
-        return string(keymap.encrypt(self, *args, **kwds), encoding=self.__type__)
+        return string(keymap.encrypt(self, *args, **kwds), encoding=self.__type__, **self._config)
 
-class picklemap(keymap):
+class picklemap(keymap)
     """tool for converting a function's input signature to an unique key
 
     This keymap serializes objects by pickling the object.  Serializing an
@@ -304,6 +307,7 @@ class picklemap(keymap):
         Use kelpto.crypto.serializers() to get the names of available picklers.
         NOTE: the serializer kwd expects a <module> object, and not a <str>.
         '''
+        kwds['byref'] = kwds.get('byref',True) #XXX: for dill
         self.__type__ = kwds.pop('serializer', None)
         #XXX: better not convert __type__ to string, so don't __import__ ?
         if not isinstance(self.__type__, (str, type(None))):
@@ -313,10 +317,10 @@ class picklemap(keymap):
         return
     def encode(self, *args, **kwds):
         """use a flattened scheme for generating a key"""
-        return pickle(keymap.encode(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill  # separator=(',',':') for json
+        return pickle(keymap.encode(self, *args, **kwds), serializer=self.__type__, **self._config) # separator=(',',':') for json
     def encrypt(self, *args, **kwds):
         """use a non-flat scheme for generating a key"""
-        return pickle(keymap.encrypt(self, *args, **kwds), serializer=self.__type__, byref=True)# for dill  # separator=(',',':') for json
+        return pickle(keymap.encrypt(self, *args, **kwds), serializer=self.__type__, **self._config) # separator=(',',':') for json
 
 
 # EOF
