@@ -20,7 +20,6 @@ matrix:
         - python: '2.5'
         - python: '3.1'
         - python: 'nightly'
-        - python: 'pypy'
         - python: 'pypy3'
     fast_finish: true
 
