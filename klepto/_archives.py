@@ -251,6 +251,7 @@ class dir_archive(dict):
         permissions: octal representing read/write permissions [default: 0o775]
         memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
         memsize: approximate size (in MB) of cache for in-memory compression
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         #XXX: if compression or mode is given, use joblib-style pickling
         #     (ignoring 'serialized'); else if serialized, use dill unless
@@ -269,6 +270,7 @@ class dir_archive(dict):
             'permissions': permissions,
             'memmode': kwds.get('memmode', None),
             'memsize': kwds.get('memsize', 100), # unused?
+            'protocol': kwds.get('protocol', None),
             'root': dirname
         } #XXX: add 'cloud' option?
         # if not serialized, then set fast=False
@@ -443,7 +445,7 @@ class dir_archive(dict):
         "generate suitable filename for a given key"
         # special handling for pickles; enable non-strings (however 1=='1')
         try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
-        except: ispickle = False
+        except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
         return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
        ##XXX: below probably fails on windows, and could be huge... use 'md5'
        #return repr(key)[1:-1] if ispickle else str(key) # or repr?
@@ -532,23 +534,26 @@ class dir_archive(dict):
         "store output (and possibly input) in a subdirectory"
         _key = TEMP+hash(random(), 'md5')
         # create an input file when key is not suitable directory name
-        if self._fname(key) != key: input=True
+        if self._fname(key) != key: input=True #XXX: errors if protocol=0,1?
         # create a temporary directory, and dump the results
         try:
             _file = os.path.join(self._mkdir(_key), self._file)
             if input: _args = os.path.join(self._getdir(_key), self._args)
             if self.__state__['serialized']:
+                protocol = self.__state__['protocol']
                 if self.__state__['fast']:
                     compression = self.__state__['compression']
-                    _pickle.dump(value, _file, compress=compression)
-                    if input: _pickle.dump(key, _args, compress=compression)
+                    _pickle.dump(value, _file, compress=compression,
+                                               protocol=protocol)
+                    if input: _pickle.dump(key, _args, compress=compression,
+                                                       protocol=protocol)
                 else:
                     f = open(_file, 'wb')
-                    dill.dump(value, f)  #XXX: byref=True ?
+                    dill.dump(value, f, protocol=protocol)  #XXX: byref=True ?
                     f.close()
                     if input:
                         f = open(_args, 'wb')
-                        dill.dump(key, f)
+                        dill.dump(key, f, protocol=protocol)
                         f.close()
             else: # try to get an import for the object
                 try: memo = getimportable(value, alias='memo', byname=False)
@@ -622,12 +627,13 @@ class dir_archive(dict):
 
 class file_archive(dict):
     """dictionary-style interface to a file"""
-    def __init__(self, filename=None, serialized=True): # False
+    def __init__(self, filename=None, serialized=True, **kwds): # False
         """initialize a file with a synchronized dictionary interface
 
     Inputs:
         serialized: if True, pickle file contents; otherwise save python objects
         filename: name of the file backend [default: memo.pkl or memo.py]
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         """filename = full filepath"""
         if filename is None:
@@ -637,7 +643,8 @@ class file_archive(dict):
         # set state
         self.__state__ = {
             'filename': filename,
-            'serialized': serialized
+            'serialized': serialized,
+            'protocol': kwds.get('protocol', None)
         } #XXX: add 'cloud' option?
         if not os.path.exists(filename):
             self.__save__({})
@@ -645,8 +652,8 @@ class file_archive(dict):
     def __reduce__(self):
         fname = self.__state__['filename']
         serial = self.__state__['serialized']
-       #state = {'__state__': self.__state__}
-        return (self.__class__, (fname, serial))#, state)
+        state = {'__state__': self.__state__}
+        return (self.__class__, (fname, serial), state)
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
         filename = self.__state__['filename']
@@ -686,8 +693,9 @@ class file_archive(dict):
         # create a temporary file, and dump the results
         try:
             if self.__state__['serialized']:
+                protocol = self.__state__['protocol']
                 f = open(_filename, 'wb')
-                dill.dump(memo, f)  #XXX: byref=True ?
+                dill.dump(memo, f, protocol=protocol)  #XXX: byref=True ?
                 f.close()
             else: #XXX: likely_import for each item in dict... ?
                 from .tools import _b
@@ -742,7 +750,8 @@ class file_archive(dict):
         filename = self.__state__['filename']
         if name is None: name = filename
         else: shutil.copy2(filename, name) #XXX: overwrite?
-        adict = {'serialized':self.__state__['serialized'], 'filename':name}
+        adict = {'serialized':self.__state__['serialized'], \
+                 'protocol': self.__state__['protocol'], 'filename':name}
         adict = file_archive(**adict)
        #adict.update(self.__asdict__())
         return adict
@@ -892,6 +901,7 @@ if sql:
       Inputs:
           database: url of the database backend [default: sqlite:///:memory:]
           serialized: if True, pickle table contents; otherwise cast as strings
+          protocol: pickling protocol [default: None (use the default protocol)]
           """
           __import_hook__()
           # create database, if doesn't exist
@@ -911,6 +921,7 @@ if sql:
           self.__state__ = { #XXX: add 'cloud' option?
               'serialized': bool(kwds.pop('serialized', True)),
               'database': _database,
+              'protocol': kwds.pop('protocol', dill.DEFAULT_PROTOCOL),
               # preserve other settings (for copy)
               'config': kwds.copy()
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
@@ -1027,7 +1038,8 @@ if sql:
           "D.copy(name) -> a copy of D, with a new archive at the given name"
           if name is None: name = self.name
           else: pass #FIXME: copy database/table instead of do update below
-          adict = {'serialized':self.__state__['serialized'], 'database':name}
+          adict = {'serialized':self.__state__['serialized'], \
+                   'protocol': self.__state__['protocol'], 'database':name}
           adict.update(self.__state__['config'])
           adict = sql_archive(**adict)#FIXME: should reference, not copy
           adict.update(self.__asdict__())
@@ -1126,7 +1138,8 @@ if sql:
           # prepare table types #XXX: do in __init__ ?
           keytype = sql.String(255)
           if self.__state__['serialized']:
-              valtype = sql.PickleType(pickler=dill)
+              proto = self.__state__['protocol']
+              valtype = sql.PickleType(protocol=proto, pickler=dill)
           else: valtype = sql.Text()
           # create table, if doesn't exist
           table = sql.Table(table, self._metadata,
@@ -1214,6 +1227,7 @@ if sql:
           database: url of the database backend [default: sqlite:///:memory:]
           table: name of the associated database table [default: 'memo']
           serialized: if True, pickle table contents; otherwise cast as strings
+          protocol: pickling protocol [default: None (use the default protocol)]
           """
           __import_hook__()
           if table is None: table = 'memo' #XXX: better random unique id ?
@@ -1235,6 +1249,7 @@ if sql:
               'serialized': bool(kwds.pop('serialized', True)),
               'database': _database,
               'table': table,
+              'protocol': kwds.pop('protocol', dill.DEFAULT_PROTOCOL),
               # preserve other settings (for copy)
               'config': kwds.copy()
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
@@ -1265,7 +1280,8 @@ if sql:
           self._val = 'Kval' # object storage name
           keytype = sql.String(255) #XXX: other better fixed size?
           if self.__state__['serialized']:
-              valtype = sql.PickleType(pickler=dill)
+              proto = self.__state__['protocol']
+              valtype = sql.PickleType(protocol=proto, pickler=dill)
           else:
               valtype = sql.Text() #XXX: String(255) or BLOB() ???
           # create table, if doesn't exist
@@ -1393,6 +1409,7 @@ if sql:
           else: pass #FIXME: copy database/table instead of do update below
           db,table = _sqlname(name)
           adict = {'serialized': self.__state__['serialized'],\
+                   'protocol': self.__state__['protocol'],\
                    'database': db, 'table': table}
           adict.update(self.__state__['config'])
           adict = sqltable_archive(**adict) #FIXME: should reference, not copy
@@ -1557,10 +1574,12 @@ else:
           dbname = _database.split('sqlite:///')[-1]
           # set state
           kwds.pop('serialized', True) # 'serialized' is not available
+          kwds.pop('protocol', None) # 'protocol' is not available
           self.__state__ = {
               'serialized': False,
               'database': _database,
               'table': table,
+              'protocol': None,
               # preserve other settings (for copy)
               'config': kwds.copy()
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
@@ -1658,6 +1677,7 @@ else:
           else: pass #FIXME: copy database/table instead of do update below
           db,table = _sqlname(name)
           adict = {'serialized': self.__state__['serialized'],\
+                   'protocol': self.__state__['protocol'],\
                    'database': db, 'table': table}
           adict.update(self.__state__['config'])
           adict = sqltable_archive(**adict) #FIXME: should reference, not copy

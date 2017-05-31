@@ -67,6 +67,7 @@ class dir_archive(_dir_archive):
         compression: compression level (0 to 9) [default: 0 (no compression)]
         memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
         memsize: approximate size (in MB) of cache for in-memory compression
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         if dict is None: dict = {}
         archive = _dir_archive(name, **kwds)
@@ -84,6 +85,7 @@ class file_archive(_file_archive):
         dict: initial dictionary to seed the archive
         cached: if True, use an in-memory cache interface to the archive
         serialized: if True, pickle file contents; otherwise save python objects
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         if dict is None: dict = {}
         archive = _file_archive(name, **kwds)
@@ -115,6 +117,7 @@ class sqltable_archive(_sqltable_archive):
         dict: initial dictionary to seed the archive
         cached: if True, use an in-memory cache interface to the archive
         serialized: if True, pickle table contents; otherwise cast as strings
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         if dict is None: dict = {}
         db, table = _sqlname(name)
@@ -145,6 +148,7 @@ class sql_archive(_sql_archive):
         dict: initial dictionary to seed the archive
         cached: if True, use an in-memory cache interface to the archive
         serialized: if True, pickle table contents; otherwise cast as strings
+        protocol: pickling protocol [default: None (use the default protocol)]
         """
         if dict is None: dict = {}
         archive = _sql_archive(name, **kwds)

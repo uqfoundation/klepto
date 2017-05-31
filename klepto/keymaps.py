@@ -179,9 +179,9 @@ class keymap(object):
         """recover the stored value directly from a generated (flattened) key"""
         raise NotImplementedError("Key decoding is not implemented")
 
-    def dumps(self, obj):
+    def dumps(self, obj, **kwds):
         """a more pickle-like interface for encoding a key"""
-        return self.encode(obj)
+        return self.encode(obj, **kwds)
 
     def loads(self, key):
         """a more pickle-like interface for decoding a key"""
