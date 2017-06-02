@@ -24,11 +24,19 @@ import imp
 try:
   imp.find_module('sqlalchemy')
   sql = True
-  def __import_hook__():
+  def __import_sql__():
       global sql
       import sqlalchemy as sql
 except ImportError:
   sql = None
+try:
+  imp.find_module('h5py')
+  hdf = True
+  def __import_hdf__():
+      global hdf
+      import h5py as hdf
+except ImportError:
+  hdf = None
 import dill
 from dill.source import getimportable
 from pox import mkdir, rmtree, walk
@@ -36,7 +44,8 @@ from .crypto import hash
 from . import _pickle
 
 __all__ = ['cache','dict_archive','null_archive','dir_archive',\
-           'file_archive','sql_archive','sqltable_archive']
+           'file_archive','sql_archive','sqltable_archive',\
+           'hdf_archive','hdfdir_archive']
 
 PREFIX = "K_"  # hash needs to be importable
 TEMP = "I_"    # indicates 'temporary' file
@@ -631,8 +640,8 @@ class file_archive(dict):
         """initialize a file with a synchronized dictionary interface
 
     Inputs:
-        serialized: if True, pickle file contents; otherwise save python objects
         filename: name of the file backend [default: memo.pkl or memo.py]
+        serialized: if True, pickle file contents; otherwise save python objects
         protocol: pickling protocol [default: None (use the default protocol)]
         """
         """filename = full filepath"""
@@ -903,7 +912,7 @@ if sql:
           serialized: if True, pickle table contents; otherwise cast as strings
           protocol: pickling protocol [default: None (use the default protocol)]
           """
-          __import_hook__()
+          __import_sql__()
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
           elif database == 'sqlite:///': database = 'sqlite:///:memory:'
@@ -1229,7 +1238,7 @@ if sql:
           serialized: if True, pickle table contents; otherwise cast as strings
           protocol: pickling protocol [default: None (use the default protocol)]
           """
-          __import_hook__()
+          __import_sql__()
           if table is None: table = 'memo' #XXX: better random unique id ?
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
@@ -1808,6 +1817,659 @@ else:
       name = property(__get_name, __archive)
       pass
   sql_archive = sqltable_archive #XXX: or NotImplemented ?
+
+
+if hdf:
+  class hdf_archive(dict):
+      """dictionary-style interface to a hdf5 file"""
+      def __init__(self, filename=None, serialized=True, **kwds):
+          """initialize a hdf5 file with a synchronized dictionary interface
+
+      Inputs:
+          filename: name of the file backend [default: memo.hdf5]
+          serialized: if True, pickle hdf entries; otherwise save python objects
+          protocol: pickling protocol [default: None (use the default protocol)]
+          meta: if True, store as file root metadata; otherwise store in datasets
+          """
+          __import_hdf__()
+          if filename is None: filename = 'memo.hdf5'
+          elif not filename.endswith(('.hdf5','.hdf','.h5')): filename = filename+'.hdf5'
+          # set state
+          meta = kwds.get('meta', False)
+          self.__state__ = {
+              'filename': filename,
+              'serialized': serialized,
+              'protocol': kwds.get('protocol', 0 if meta else None),
+              'meta': meta
+          } #XXX: add 'cloud' option?
+          if not os.path.exists(filename):
+              self.__save__({})
+          return
+      def __reduce__(self):
+          fname = self.__state__['filename']
+          serial = self.__state__['serialized']
+          state = {'__state__': self.__state__}
+          return (self.__class__, (fname, serial), state)
+      def _attrs(self, file):
+          return file.attrs if self.__state__['meta'] else file
+      def _loadkey(self, key): # get a key from the archive
+          'convert from a key stored in the HDF file'
+          return dill.loads(key)
+      def _loadval(self, value): # get a value from the archive
+          'convert from a value stored in the HDF file'
+          if self.__state__['meta']:
+              return dill.loads(value) if self.__state__['serialized'] else value
+          return dill.loads(value[0]) if self.__state__['serialized'] else value.value #XXX: correct for arrays?
+      def _dumpkey(self, key): # lookup a key in the archive
+          'convert to a key stored in the HDF file'
+          return dill.dumps(key, protocol=0)
+      def _dumpval(self, value): # lookup a value in the archive
+          'convert to a value stored in the HDF file'
+          if self.__state__['serialized']:
+              protocol = self.__state__['protocol']
+              value = dill.dumps(value, protocol=protocol) #XXX: fix at 0?
+              return value if self.__state__['meta'] else [value]
+          return value #XXX: or [value]? (so no scalars)
+      def __asdict__(self):
+          """build a dictionary containing the archive contents"""
+          filename = self.__state__['filename']
+          try:
+              memo = {}
+              f = hdf.File(filename, 'r')
+              _f = self._attrs(f)
+              for k,v in getattr(f, 'iteritems', f.items)():
+                  memo[self._loadkey(k)] = self._loadval(v)
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              memo = {}
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return memo
+      def __save__(self, memo=None, new=True):
+          """create an archive from the given dictionary"""
+          if memo == None: return
+          filename = self.__state__['filename']
+          _filename = os.path.join(os.path.dirname(os.path.abspath(filename)), TEMP+hash(random(), 'md5')) if new else filename
+          # create a temporary file, and dump the results
+          try:
+              f = hdf.File(_filename, 'w' if new else 'a')
+              for k,v in getattr(memo, 'iteritems', memo.items)():
+                 #self._attrs(f).update({self._dumpkey(k): self._dumpval(v)})
+                  _f = self._attrs(f)
+                  _k = self._dumpkey(k)
+                  _f.pop(_k,None)
+                  _f[_k] = self._dumpval(v)
+          except OSError:
+              f = None
+              "failed to populate file for %s" % filename
+          finally:
+              if f is not None: f.close()
+          if not new: return
+          # move the results to the proper place
+          try:
+              os.remove(filename)
+          except: pass
+          try:
+              os.renames(_filename, filename)
+          except OSError:
+              "error in populating %s" % filename
+          return
+      #FIXME: missing __cmp__, __...__
+      def __eq__(self, y):
+          try:
+              if y.__module__ != self.__module__: return NotImplemented
+              return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+          except: return NotImplemented
+      __eq__.__doc__ = dict.__eq__.__doc__
+      def __ne__(self, y):
+          y = self.__eq__(y)
+          return NotImplemented if y is NotImplemented else not y
+      __ne__.__doc__ = dict.__ne__.__doc__
+      def __delitem__(self, key):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'a')
+              self._attrs(f).__delitem__(self._dumpkey(key))
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              raise KeyError(key)
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return
+      __delitem__.__doc__ = dict.__delitem__.__doc__
+      def __getitem__(self, key):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'r')
+              val = self._loadval(self._attrs(f)[self._dumpkey(key)])
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              raise KeyError(key)
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return val
+      __getitem__.__doc__ = dict.__getitem__.__doc__
+      def __repr__(self):
+          return "hdf_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
+      __repr__.__doc__ = dict.__repr__.__doc__
+      def __setitem__(self, key, value):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'a')
+             #self._attrs(f).update({self._dumpkey(key): self._dumpval(value)})
+              _f = self._attrs(f)
+              _k = self._dumpkey(key)
+              _f.pop(_k,None)
+              _f[_k] = self._dumpval(value)
+          except KeyError: #XXX: should only catch appropriate exceptions
+              f = None
+              raise KeyError(key)
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return
+      __setitem__.__doc__ = dict.__setitem__.__doc__
+      def clear(self):
+          self.__save__({}, new=True)
+          return
+      clear.__doc__ = dict.clear.__doc__
+      def copy(self, name=None): #XXX: always None? or allow other settings?
+          "D.copy(name) -> a copy of D, with a new archive at the given name"
+          filename = self.__state__['filename']
+          if name is None: name = filename
+          else: shutil.copy2(filename, name) #XXX: overwrite?
+          adict = {'serialized':self.__state__['serialized'],'filename':name,\
+                   'protocol':self.__state__['protocol'],\
+                   'meta':self.__state__['meta']}
+          adict = hdf_archive(**adict)
+         #adict.update(self.__asdict__())
+          return adict
+      def fromkeys(self, *args): #XXX: build a dict (not an archive)?
+          return dict.fromkeys(*args)
+      fromkeys.__doc__ = dict.fromkeys.__doc__
+      def get(self, key, value=None):
+          try: _value = self.__getitem__(key)
+          except KeyError: _value = value
+          return _value
+      get.__doc__ = dict.get.__doc__
+      def keys(self):
+          if sys.version_info[0] >= 3:
+              return KeysView(self) #XXX: show keys not dict
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'r')
+              _keys = [self._loadkey(key) for key in self._attrs(f).keys()]
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return _keys
+      keys.__doc__ = dict.keys.__doc__
+      def values(self):
+          if sys.version_info[0] >= 3:
+              return ValuesView(self) #XXX: show values not dict
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'r')
+              vals = [self._loadval(val) for val in self._attrs(f).values()]
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return vals
+      values.__doc__ = dict.values.__doc__
+      def __contains__(self, key):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'r')
+              has_key = self._dumpkey(key) in self._attrs(f)
+          except KeyError: #XXX: should only catch appropriate exceptions
+              f = None
+              raise KeyError(key)
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return has_key
+      __contains__.__doc__ = dict.__contains__.__doc__
+      if getattr(dict, 'has_key', None):
+          has_key = __contains__
+          has_key.__doc__ = dict.has_key.__doc__
+          def __iter__(self):
+              return dict((j,i) for (i,j) in enumerate(self.keys())).iterkeys()
+          def iteritems(self):
+              return self.__asdict__().iteritems()
+          iteritems.__doc__ = dict.iteritems.__doc__
+          iterkeys = __iter__
+          iterkeys.__doc__ = dict.iterkeys.__doc__
+          def itervalues(self):
+              return dict((j,i) for (i,j) in enumerate(self.values())).itervalues()
+          itervalues.__doc__ = dict.itervalues.__doc__
+      else:
+          def __iter__(self):
+              return iter(self.keys())
+      __iter__.__doc__ = dict.__iter__.__doc__
+      def items(self):
+          if sys.version_info[0] < 3:
+              return self.__asdict__().items()
+          else: return ItemsView(self) #XXX: show items not dict
+      items.__doc__ = dict.items.__doc__
+      if _view:
+          def viewkeys(self):
+              return KeysView(self) #XXX: show keys not dict
+          viewkeys.__doc__ = dict.viewkeys.__doc__
+          def viewvalues(self):
+              return ValuesView(self) #XXX: show values not dict
+          viewvalues.__doc__ = dict.viewvalues.__doc__
+          def viewitems(self):
+              return ItemsView(self) #XXX: show items not dict
+          viewitems.__doc__ = dict.viewitems.__doc__
+      def pop(self, key, *value):
+          value = (self._dumpval(val) for val in value)
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'a')
+              val = self._loadval(self._attrs(f).pop(self._dumpkey(key), *value))
+          except KeyError: #XXX: should only catch appropriate exceptions
+              f = None
+              raise KeyError(key)
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return val
+      pop.__doc__ = dict.pop.__doc__
+      def popitem(self):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'a')
+              key,val = self._attrs(f).popitem()
+              key,val = self._loadkey(key),self._loadval(val)
+          except KeyError: #XXX: should only catch appropriate exceptions
+              f = None
+              d = {}
+              d.popitem()
+             #raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return key,val
+      popitem.__doc__ = dict.popitem.__doc__
+      def setdefault(self, key, *value):
+          res = self.get(key, *value)
+          self.__setitem__(key, res)
+          return res
+      setdefault.__doc__ = dict.setdefault.__doc__
+      def update(self, adict, **kwds):
+          if hasattr(adict,'__asdict__'): adict = adict.__asdict__()
+          memo = {}
+          memo.update(adict, **kwds)
+          self.__save__(memo, new=False)
+          return
+      update.__doc__ = dict.update.__doc__
+      def __len__(self):
+          filename = self.__state__['filename']
+          try:
+              f = hdf.File(filename, 'r')
+              _len = len(self._attrs(f))
+          except: #XXX: should only catch appropriate exceptions
+              f = None
+              raise OSError("error reading file archive %s" % filename)
+          finally:
+              if f is not None: f.close()
+          return _len
+      # interface
+      def load(self, *args):
+          """does nothing. required to use an archive as a cache"""
+          return
+      dump = load
+      def archived(self, *on):
+          """check if the cache is a persistent archive"""
+          L = len(on)
+          if not L: return True
+          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+          raise ValueError("cannot toggle archive")
+      def sync(self, clear=False):
+          "does nothing. required to use an archive as a cache"
+          pass
+      def drop(self): #XXX: or actually drop the backend?
+          "set the current archive to NULL"
+          return self.__archive(None)
+      def open(self, archive):
+          "replace the current archive with the archive provided"
+          return self.__archive(archive)
+      def __get_archive(self):
+          return self
+      def __get_name(self):
+          return os.path.basename(self.__state__['filename'])
+      def __archive(self, archive):
+          raise ValueError("cannot set new archive")
+      archive = property(__get_archive, __archive)
+      name = property(__get_name, __archive)
+      pass
+
+  class hdfdir_archive(dict):
+      """dictionary-style interface to a folder of hdf5 files"""
+      def __init__(self, dirname=None, serialized=True, **kwds):
+          """initialize a hdf5 file with a synchronized dictionary interface
+
+      Inputs:
+          dirname: name of the root archive directory [default: memo]
+          serialized: if True, pickle hdf entries; otherwise save python objects
+          permissions: octal representing read/write permissions [default: 0o775]
+          protocol: pickling protocol [default: None (use the default protocol)]
+          meta: if True, store as file root metadata; otherwise store in datasets
+          """
+          __import_hdf__()
+          if dirname is None: #FIXME: default root as /tmp or something better
+              dirname = 'memo' #FIXME: need better default
+          # set state
+          meta = kwds.get('meta', False)
+          self.__state__ = {
+              'root': dirname,
+              'serialized': serialized,
+              'permissions': kwds.get('permissions', None),
+              'protocol': kwds.get('protocol', 0 if meta else None),
+              'meta': meta
+          } #XXX: add 'cloud' option?
+          try:
+              self.__state__['root'] = mkdir(dirname, mode=self.__state__['permissions'])
+          except OSError: # then directory already exists
+              self.__state__['root'] = os.path.abspath(dirname)
+          return
+      def __reduce__(self):
+          dirname = self.name
+          serial = self.__state__['serialized']
+          state = {'__state__': self.__state__}
+          return (self.__class__, (dirname, serial), state)
+      def __asdict__(self):
+          """build a dictionary containing the archive contents"""
+          # get the names of all directories in the directory
+          keys = self._keydict()
+          # get the values
+          return dict((key,self.__getitem__(key)) for key in keys)
+      #FIXME: missing __cmp__, __...__
+      def __eq__(self, y):
+          try:
+              if y.__module__ != self.__module__: return NotImplemented
+              return self.__asdict__() == y.__asdict__() #XXX: faster than get?
+          except: return NotImplemented
+      __eq__.__doc__ = dict.__eq__.__doc__
+      def __ne__(self, y):
+          y = self.__eq__(y)
+          return NotImplemented if y is NotImplemented else not y
+      __ne__.__doc__ = dict.__ne__.__doc__
+      def __delitem__(self, key):
+          try:
+              memo = {key: None}
+              self._rmdir(key)
+          except:
+              memo = {}
+          memo.__delitem__(key)
+          return
+      __delitem__.__doc__ = dict.__delitem__.__doc__
+      def __getitem__(self, key):
+          return self._lookup(key)
+      __getitem__.__doc__ = dict.__getitem__.__doc__
+      def __repr__(self):
+          return "hdfdir_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
+      __repr__.__doc__ = dict.__repr__.__doc__
+      def __setitem__(self, key, value):
+          self._store(key, value, input=False) # input=True also stores input
+          return
+      __setitem__.__doc__ = dict.__setitem__.__doc__
+      def clear(self):
+          rmtree(self.__state__['root'], self=False, ignore_errors=True)
+          return
+      clear.__doc__ = dict.clear.__doc__
+      def copy(self, name=None): #XXX: always None? or allow other settings?
+          "D.copy(name) -> a copy of D, with a new archive at the given name"
+          if name is None:
+              name = self.__state__['root']
+          else: #XXX: overwrite?
+              shutil.copytree(self.__state__['root'], os.path.abspath(name))
+          adict = hdfdir_archive(dirname=name, **self.__state__)
+         #adict.update(self.__asdict__())
+          return adict
+      def fromkeys(self, *args): #XXX: build a dict (not an archive)?
+          return dict.fromkeys(*args)
+      fromkeys.__doc__ = dict.fromkeys.__doc__
+      def get(self, key, value=None):
+          try:
+              return self.__getitem__(key)
+          except:
+              return value
+      get.__doc__ = dict.get.__doc__
+      def __contains__(self, key):
+          _dir = self._getdir(key)
+          return os.path.exists(_dir)
+      __contains__.__doc__ = dict.__contains__.__doc__
+      if getattr(dict, 'has_key', None):
+          has_key = __contains__
+          has_key.__doc__ = dict.has_key.__doc__
+          def __iter__(self):
+              return self._keydict().iterkeys()
+          def iteritems(self): #XXX: should be dictionary-itemiterator
+              keys = self._keydict()
+              return ((key,self.__getitem__(key)) for key in keys)
+          iteritems.__doc__ = dict.iteritems.__doc__
+          iterkeys = __iter__
+          iterkeys.__doc__ = dict.iterkeys.__doc__
+          def itervalues(self): #XXX: should be dictionary-valueiterator
+              keys = self._keydict()
+              return (self.__getitem__(key) for key in keys)
+          itervalues.__doc__ = dict.itervalues.__doc__
+      else:
+          def __iter__(self):
+              return iter(self._keydict().keys())
+      __iter__.__doc__ = dict.__iter__.__doc__
+      def keys(self):
+          if sys.version_info[0] < 3:
+              return self._keydict().keys()
+          else: return KeysView(self) #XXX: show keys not dict
+      keys.__doc__ = dict.keys.__doc__
+      def items(self):
+          if sys.version_info[0] < 3:
+              keys = self._keydict()
+              return [(key,self.__getitem__(key)) for key in keys]
+          else: return ItemsView(self) #XXX: show items not dict
+      items.__doc__ = dict.items.__doc__
+      def values(self):
+          if sys.version_info[0] < 3:
+              keys = self._keydict()
+              return [self.__getitem__(key) for key in keys]
+          else: return ValuesView(self) #XXX: show values not dict
+      values.__doc__ = dict.values.__doc__
+      if _view:
+          def viewkeys(self):
+              return KeysView(self) #XXX: show keys not dict
+          viewkeys.__doc__ = dict.viewkeys.__doc__
+          def viewvalues(self):
+              return ValuesView(self) #XXX: show values not dict
+          viewvalues.__doc__ = dict.viewvalues.__doc__
+          def viewitems(self):
+              return ItemsView(self) #XXX: show items not dict
+          viewitems.__doc__ = dict.viewitems.__doc__
+      def pop(self, key, *value): #XXX: or make DEAD ?
+          try:
+              memo = {key: self.__getitem__(key)}
+              self._rmdir(key)
+          except:
+              memo = {}
+          res = memo.pop(key, *value)
+          return res
+      pop.__doc__ = dict.pop.__doc__
+      def popitem(self):
+          key = self.__iter__()
+          try: key = key.next()
+          except StopIteration: raise KeyError("popitem(): dictionary is empty")
+          return (key, self.pop(key))
+      popitem.__doc__ = dict.popitem.__doc__
+      def setdefault(self, key, *value):
+          res = self.get(key, *value)
+          self.__setitem__(key, res)
+          return res
+      setdefault.__doc__ = dict.setdefault.__doc__
+      def update(self, adict, **kwds):
+          if hasattr(adict,'__asdict__'): adict = adict.__asdict__()
+          memo = {}
+          memo.update(adict, **kwds) #XXX: could be better ?
+          for (key,val) in memo.items():
+              self.__setitem__(key,val)
+          return
+      update.__doc__ = dict.update.__doc__
+      def __len__(self):
+          return len(self._lsdir())
+      def _fname(self, key):
+          "generate suitable filename for a given key"
+          # special handling for pickles; enable non-strings (however 1=='1')
+          try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
+          except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
+          return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+         ##XXX: below probably fails on windows, and could be huge... use 'md5'
+         #return repr(key)[1:-1] if ispickle else str(key) # or repr?
+      def _mkdir(self, key):
+          "create results subdirectory corresponding to given key"
+          key = self._fname(key)
+          try:
+              return mkdir(PREFIX+key, root=self.__state__['root'], mode=self.__state__['permissions'])
+          except OSError: # then directory already exists
+              return self._getdir(key)
+      def _getdir(self, key):
+          "get results directory name corresponding to given key"
+          key = self._fname(key)
+          return os.path.join(self.__state__['root'], PREFIX+key)
+      def _rmdir(self, key):
+          "remove results subdirectory corresponding to given key"
+          rmtree(self._getdir(key), self=True, ignore_errors=True)
+          return
+      def _lsdir(self):
+          "get a list of subdirectories in the root directory"
+          return walk(self.__state__['root'],patterns=PREFIX+'*',recurse=False,folders=True,files=False,links=False)
+      def _hasinput(self, root):
+          "check if results subdirectory has stored input file"
+          return bool(walk(root,patterns=self._args,recurse=False,folders=False,files=True,links=False))
+      def _getkey(self, root):
+          "get key given a results subdirectory name"
+          key = os.path.basename(root)[2:]
+          return self._lookup(key,input=True) if self._hasinput(root) else key
+      def _keydict(self):
+          "get a dict of subdirectories in the root directory, with dummy values"
+          keys = self._lsdir()
+          return dict((self._getkey(key),None) for key in keys)
+      def _reverse_lookup(self, args): #XXX: guaranteed 1-to-1 mapping?
+          "get subdirectory name from args"
+          d = {}
+          for key in iter(self._keydict()):
+              try:
+                  if args == self._lookup(key, input=True):
+                      d[args] = None #XXX: unnecessarily memory intensive?
+                      break
+              except KeyError:
+                  continue
+          # throw KeyError(args) if key not found
+          del d[args]
+          return key
+      #NOTE: all above methods are virtually identical to those in dir_archive
+      #NOTE: all below methods are similar, and could be merged to dir_archive
+      def _lookup(self, key, input=False):
+          "get input or output from subdirectory name"
+          _dir = self._getdir(key)
+          _file = self._args if input else self._file
+          _file = os.path.join(_dir, _file)
+          try:
+              adict = {'serialized':self.__state__['serialized'],\
+                       'protocol':self.__state__['protocol'],\
+                       'meta':self.__state__['meta']}
+              #XXX: assumes one entry per file; ...could use name as key?
+              #XXX: alternately, could store {key:value} (i.e. use one file)?
+              memo = hdf_archive(_file, **adict).values()[0]
+          except: #XXX: should only catch the appropriate exceptions
+              memo = None
+              raise KeyError(key)
+             #raise OSError("error reading directory for '%s'" % key)
+          return memo
+      def _store(self, key, value, input=False):
+          "store output (and possibly input) in a subdirectory"
+          _key = TEMP+hash(random(), 'md5')
+          # create an input file when key is not suitable directory name
+          if self._fname(key) != key: input=True #XXX: errors if protocol=0,1?
+          # create a temporary directory, and dump the results
+          try:
+              _file = os.path.join(self._mkdir(_key), self._file)
+              if input: _args = os.path.join(self._getdir(_key), self._args)
+
+              protocol = self.__state__['protocol']
+              adict = {'serialized':self.__state__['serialized'],\
+                       'protocol':self.__state__['protocol'],\
+                       'meta':self.__state__['meta']}
+              #XXX: assumes one entry per file; ...could use name as key?
+              memo = hdf_archive(_file, **adict)
+              memo[None] = value
+              if input:
+                  memo = hdf_archive(_args, **adict)
+                  memo[None] = key
+          except OSError:
+              "failed to populate directory for '%s'" % key
+          # move the results to the proper place
+          try: #XXX: possible permissions issues here
+              self._rmdir(key) #XXX: 'key' must be a suitable dir name
+              os.renames(self._getdir(_key), self._getdir(key))
+#         except TypeError: #XXX: catch key that isn't converted to safe filename
+#             "error in populating directory for '%s'" % key
+          except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
+              "error in populating directory for '%s'" % key
+      def _get_args(self):
+          return 'input.hdf5'
+      def _get_file(self):
+          return 'output.hdf5'
+      def _set_file(self, file):
+          raise NotImplementedError("cannot set attribute '_file'")
+      # interface
+      def load(self, *args):
+          """does nothing. required to use an archive as a cache"""
+          return
+      dump = load
+      def archived(self, *on):
+          """check if the cache is a persistent archive"""
+          L = len(on)
+          if not L: return True
+          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
+          raise ValueError("cannot toggle archive")
+      def sync(self, clear=False):
+          "does nothing. required to use an archive as a cache"
+          pass
+      def drop(self): #XXX: or actually drop the backend?
+          "set the current archive to NULL"
+          return self.__archive(None)
+      def open(self, archive):
+          "replace the current archive with the archive provided"
+          return self.__archive(archive)
+      def __get_archive(self):
+          return self
+      def __get_name(self):
+          return os.path.basename(self.__state__['root'])
+      def __archive(self, archive):
+          raise ValueError("cannot set new archive")
+      archive = property(__get_archive, __archive)
+      name = property(__get_name, __archive)
+      _file = property(_get_file, _set_file)
+      _args = property(_get_args, _set_file)
+      pass
+
+else:
+  class hdf_archive(dict):
+      """dictionary-style interface to a hdf5 file"""
+      def __init__(self, *args, **kwds):
+          import h5py
+      pass
+  class hdfdir_archive(dict):
+      """dictionary-style interface to a folder of hdf5 files"""
+      def __init__(self, *args, **kwds):
+          import h5py
+      pass
 
 
 # backward compatibility

@@ -16,10 +16,13 @@ from ._archives import dir_archive as _dir_archive
 from ._archives import file_archive as _file_archive
 from ._archives import sql_archive as _sql_archive
 from ._archives import sqltable_archive as _sqltable_archive
+from ._archives import hdf_archive as _hdf_archive
+from ._archives import hdfdir_archive as _hdfdir_archive
 from ._archives import _sqlname
 
 __all__ = ['cache','dict_archive','null_archive','dir_archive',\
-           'file_archive','sql_archive','sqltable_archive']
+           'file_archive','sql_archive','sqltable_archive',\
+           'hdf_archive','hdfdir_archive']
 
 class dict_archive(_dict_archive):
     def __new__(dict_archive, name=None, dict=None, cached=True, **kwds):
@@ -65,6 +68,7 @@ class dir_archive(_dir_archive):
         cached: if True, use an in-memory cache interface to the archive
         serialized: if True, pickle file contents; otherwise save python objects
         compression: compression level (0 to 9) [default: 0 (no compression)]
+        permissions: octal representing read/write permissions [default: 0o775]
         memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
         memsize: approximate size (in MB) of cache for in-memory compression
         protocol: pickling protocol [default: None (use the default protocol)]
@@ -152,6 +156,45 @@ class sql_archive(_sql_archive):
         """
         if dict is None: dict = {}
         archive = _sql_archive(name, **kwds)
+        if cached: archive = cache(archive=archive)
+        archive.update(dict)
+        return archive
+    pass
+
+class hdfdir_archive(_hdfdir_archive):
+    def __new__(hdfdir_archive, name=None, dict=None, cached=True, **kwds):
+        """initialize a dictionary with a hdf5 file-folder archive backend
+
+    Inputs:
+        name: name of the root archive directory [default: memo]
+        dict: initial dictionary to seed the archive
+        cached: if True, use an in-memory cache interface to the archive
+        serialized: if True, pickle file contents; otherwise save python objects
+        permissions: octal representing read/write permissions [default: 0o775]
+        protocol: pickling protocol [default: None (use the default protocol)]
+        meta: if True, store as file root metadata; otherwise store in datasets
+        """
+        if dict is None: dict = {}
+        archive = _hdfdir_archive(name, **kwds)
+        if cached: archive = cache(archive=archive)
+        archive.update(dict)
+        return archive
+    pass
+
+class hdf_archive(_hdf_archive):
+    def __new__(hdf_archive, name=None, dict=None, cached=True, **kwds):
+        """initialize a dictionary with a single hdf5 file archive backend
+
+    Inputs:
+        name: name of the hdf file archive [default: memo.hdf5]
+        dict: initial dictionary to seed the archive
+        cached: if True, use an in-memory cache interface to the archive
+        serialized: if True, pickle file contents; otherwise save python objects
+        protocol: pickling protocol [default: None (use the default protocol)]
+        meta: if True, store as file root metadata; otherwise store in datasets
+        """
+        if dict is None: dict = {}
+        archive = _hdf_archive(name, **kwds)
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
