@@ -62,10 +62,10 @@ def runme(arxiv, expected=None):
     info = doit.info()
     ck = c.keys()
     rk = r.keys() if r else ck
-#   print(type(c))
-#   print(c)
-#   print(r)
-#   print(info)
+   #print(type(c))
+   #print(c)
+   #print(r)
+   #print(info)
 
     # check keys are identical in cache and archive
     assert sorted(ck) == sorted(rk)
