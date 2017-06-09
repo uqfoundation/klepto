@@ -6,11 +6,6 @@
 # License: 3-clause BSD.  The full license text is available at:
 #  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
 
-try:
-    import h5py
-except ImportError:
-    exit()
-
 from klepto.safe import lru_cache as memoized
 from random import choice, seed
 
@@ -110,4 +105,8 @@ def test_combinations():
 
 
 if __name__ == '__main__':
-    test_combinations()
+    try:
+        import h5py
+        test_combinations()
+    except ImportError:
+        print("to test hdf, install h5py")

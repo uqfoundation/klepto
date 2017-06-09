@@ -37,6 +37,14 @@ try:
       import h5py as hdf
 except ImportError:
   hdf = None
+try:
+  imp.find_module('pandas')
+  pandas = True
+  def __import_pandas__():
+      global pandas
+      import pandas
+except ImportError:
+  pandas = None
 import dill
 from dill.source import getimportable
 from pox import mkdir, rmtree, walk
@@ -50,6 +58,62 @@ __all__ = ['cache','dict_archive','null_archive','dir_archive',\
 PREFIX = "K_"  # hash needs to be importable
 TEMP = "I_"    # indicates 'temporary' file
 #DEAD = "D_"    # indicates 'deleted' key
+
+
+def _to_frame(archive):
+    '''convert a klepto archive to a pandas DataFrame'''
+    if not pandas:
+        raise ValueError('install pandas for dataframe support')
+    __import_pandas__()
+    d = archive
+    df = pandas.DataFrame()
+    cached = d is not d.archive
+    cache = '__archive__'
+    name = d.archive.name
+    name = '' if name is None else name
+    df = df.from_dict({name: d if cached else d.__asdict__()})
+    if cached: df = pandas.concat([df[name],df.from_dict({cache:d.archive.__asdict__()})[cache]],axis=1)
+   #df.sort_index(axis=1, ascending=False, inplace=True)
+    df.columns.name = d.archive.__class__.__name__#.rsplit('_archive')[0]
+    df.index.name = repr(d.archive.state)
+    return df
+
+
+def _from_frame(dataframe):
+    '''convert a (formatted) pandas dataframe to a klepto archive'''
+    if not pandas:
+        raise ValueError('install pandas for dataframe support')
+    df = dataframe
+    d = df.to_dict()
+    # is cached if has more than one column, one of which is named 'cache'
+    cached = True if len(df.columns) > 1 else False
+    cache = '__archive__'
+    # index should be a dict; if not, set it to the empty dict
+    try:
+        index = eval(df.index.name)
+        if type(index) is not dict:
+            raise TypeError
+    except:
+        index = {}
+    # should have at least one column; if so, get the name of the column
+    name = df.columns[0] if len(df.columns) else None
+    # get the name of the  column -- this will be our cached data
+    store = df.columns[1] if cached else cache
+    # get the data from the first column
+    data = {} if name is None else dict((k,v) for (k,v) in d[name].items() if repr(v) not in ['nan','NaN'])
+    # get the archive type, defaulting to dict_archive
+    col = df.columns.name
+    try:
+        col = col if col.endswith('_archive') else ''.join((col,'_archive'))
+    except AttributeError:
+        col = ''
+    import klepto.archives as archives
+    d_ = getattr(archives, col, archives.dict_archive)
+    # get the archive instance
+    d_ = d_(name, data, cached, **index)
+    # if cached, add the cache data
+    if cached: d_.archive.update((k,v) for (k,v) in d.get(store,{}).items() if repr(v) not in ['nan','NaN'])
+    return d_
 
 
 class cache(dict):
@@ -72,6 +136,9 @@ class cache(dict):
             return "%s(%r, %s, cached=True)" % (archive, str(name), dict(self))
         return "%s(%s, cached=True)" % (archive, dict(self))
     __repr__.__doc__ = dict.__repr__.__doc__
+    def to_frame(self):
+        return _to_frame(self)
+    to_frame.__doc__ = _to_frame.__doc__
     def load(self, *args): #FIXME: archive may use key 'encoding' (dir_archive)
         """load archive contents
 
@@ -136,12 +203,16 @@ class cache(dict):
        #if not isinstance(self.__archive__, null_archive):
        #    return
         return self.__archive__
+    def __get_class(self):
+       import klepto.archives as archives
+       return getattr(archives, self.__archive__.__class__.__name__)
     def __archive(self, archive):
         if not isinstance(self.__swap__, null_archive):
             self.__swap__, self.__archive__ = self.__archive__, self.__swap__
         self.__archive__ = archive
     # interface
     archive = property(__get_archive, __archive)
+    __type__ = property(__get_class, __archive)
     pass
 
 

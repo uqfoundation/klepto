@@ -18,7 +18,7 @@ from ._archives import sql_archive as _sql_archive
 from ._archives import sqltable_archive as _sqltable_archive
 from ._archives import hdf_archive as _hdf_archive
 from ._archives import hdfdir_archive as _hdfdir_archive
-from ._archives import _sqlname
+from ._archives import _sqlname, _from_frame, _to_frame
 
 __all__ = ['cache','dict_archive','null_archive','dir_archive',\
            'file_archive','sql_archive','sqltable_archive',\
@@ -39,6 +39,14 @@ class dict_archive(_dict_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(dict_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = dict_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class null_archive(_null_archive):
@@ -56,6 +64,14 @@ class null_archive(_null_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(null_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = null_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class dir_archive(_dir_archive):
@@ -78,6 +94,14 @@ class dir_archive(_dir_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(dir_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = dir_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class file_archive(_file_archive):
@@ -96,6 +120,14 @@ class file_archive(_file_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(file_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = file_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class sqltable_archive(_sqltable_archive):
@@ -129,6 +161,14 @@ class sqltable_archive(_sqltable_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(sqltable_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = sqltable_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class sql_archive(_sql_archive):
@@ -159,6 +199,14 @@ class sql_archive(_sql_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(sql_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = sql_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class hdfdir_archive(_hdfdir_archive):
@@ -179,6 +227,14 @@ class hdfdir_archive(_hdfdir_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(hdfdir_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = hdfdir_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 class hdf_archive(_hdf_archive):
@@ -198,6 +254,14 @@ class hdf_archive(_hdf_archive):
         if cached: archive = cache(archive=archive)
         archive.update(dict)
         return archive
+
+    @classmethod
+    def from_frame(hdf_archive, dataframe):
+        try:
+            dataframe = dataframe.copy()
+            dataframe.columns.name = hdf_archive.__name__
+        except AttributeError: pass
+        return _from_frame(dataframe)
     pass
 
 
