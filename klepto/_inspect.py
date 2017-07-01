@@ -136,7 +136,8 @@ def signature(func, variadic=True, markup=True, safe=False):
         defaults = dict((k,v) for (k,v) in defaults.items() if k not in _fixed)
         defaults.update(dict((X+k,v) for (k,v) in _fixed.items()))
 
-    if inspect.ismethod(func) and func.im_self: # then it's a bound method
+    if inspect.ismethod(func) and getattr(func, 'im_self', func.__self__):
+        # then it's a bound method
         explicit = explicit[1:] #XXX: correct to remove 'self' ?
 
     if variadic:
