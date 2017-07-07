@@ -47,6 +47,8 @@ Major Features
 * `dir_archive` - a dictionary-style interface to a folder of files
 * `sqltable_archive` - a dictionary-style interface to a sql database table
 * `sql_archive` - a dictionary-style interface to a sql database
+* `hdfdir_archive` - a dictionary-style interface to a folder of hdf5 files
+* `hdf_archive` - a dictionary-style interface to a hdf5 file
 * `dict_archive` - a dictionary with an archive interface
 * `null_archive` - a dictionary-style interface to a dummy archive 
 

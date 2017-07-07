@@ -11,7 +11,7 @@ import os
 
 # set version numbers
 stable_version = '0.1.4'
-target_version = '0.1.4'
+target_version = '0.1.5'
 is_release = stable_version == target_version
 
 # check if easy_install is available
@@ -99,6 +99,8 @@ Major Features
     - `dir_archive` - a dictionary-style interface to a folder of files
     - `sqltable_archive` - a dictionary-style interface to a sql database table
     - `sql_archive` - a dictionary-style interface to a sql database
+    - `hdfdir_archive` - a dictionary-style interface to a folder of hdf5 files
+    - `hdf_archive` - a dictionary-style interface to a hdf5 file
     - `dict_archive` - a dictionary with an archive interface
     - `null_archive` - a dictionary-style interface to a dummy archive 
 
