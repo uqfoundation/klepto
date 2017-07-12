@@ -2494,7 +2494,8 @@ if hdf:
                        'meta':self.__state__['meta']}
               #XXX: assumes one entry per file; ...could use name as key?
               #XXX: alternately, could store {key:value} (i.e. use one file)?
-              memo = hdf_archive(_file, **adict).values()[0]
+              memo = tuple(hdf_archive(_file, **adict).values())[0]
+             #memo = next(iter(hdf_archive(_file, **adict).values()))
           except: #XXX: should only catch the appropriate exceptions
               memo = None
               raise KeyError(key)
