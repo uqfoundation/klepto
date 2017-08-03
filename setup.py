@@ -4,7 +4,7 @@
 # Copyright (c) 2013-2016 California Institute of Technology.
 # Copyright (c) 2016-2017 The Uncertainty Quantification Foundation.
 # License: 3-clause BSD.  The full license text is available at:
-#  - http://trac.mystic.cacr.caltech.edu/project/pathos/browser/klepto/LICENSE
+#  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
 from __future__ import with_statement, absolute_import
 import os
@@ -77,7 +77,7 @@ start a new session, and reload the function and it's cache.
 `klepto` is part of `pathos`, a python framework for heterogenous computing.
 `klepto` is in active development, so any user feedback, bug reports, comments,
 or suggestions are highly appreciated.  A list of known issues is maintained
-at http://trac.mystic.cacr.caltech.edu/project/pathos/query, with a public
+at http://trac.mystic.cacr.caltech.edu/project/pathos/query.html, with a public
 ticket list at https://github.com/uqfoundation/klepto/issues.
 
 
@@ -124,15 +124,7 @@ This version is `klepto-%(relver)s`.
 
 The latest released version of `klepto` is available from::
 
-    http://trac.mystic.cacr.caltech.edu/project/pathos
-
-or::
-
-    https://github.com/uqfoundation/klepto/releases
-
-or also::
-
-    https://pypi.python.org/pypi/klepto
+    https://pypi.org/project/klepto
 
 `klepto` is distributed under a 3-clause BSD license.
 
@@ -249,8 +241,8 @@ setup(name='klepto',
       maintainer = 'Mike McKerns',
       license = '3-clause BSD',
       platforms = ['Linux', 'Windows', 'Mac'],
-      url = 'http://www.cacr.caltech.edu/~mmckerns/klepto.htm',
-      download_url = 'http://dev.danse.us/packages',
+      url = 'https://pypi.org/project/klepto',
+      download_url = 'https://github.com/uqfoundation/klepto/releases/download/klepto-%s/klepto-%s.tar.gz',
       classifiers = ('Development Status :: 5 - Production/Stable',
                      'Intended Audience :: Developers',
                      'Intended Audience :: Science/Research',
@@ -263,7 +255,7 @@ setup(name='klepto',
 
       packages = ['klepto'],
       package_dir = {'klepto':'klepto'},
-""" % (target_version, long_description)
+""" % (target_version, long_description, stable_version, stable_version)
 
 # add dependencies
 dill_version = '>=0.2.7.1'
@@ -273,7 +265,6 @@ import sys
 if has_setuptools:
     setup_code += """
       zip_safe=False,
-      dependency_links = ['http://dev.danse.us/packages/'],
       install_requires = ['dill%s','pox%s'],
 """ % (dill_version, pox_version)
 

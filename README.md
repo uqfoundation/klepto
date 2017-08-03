@@ -26,7 +26,7 @@ start a new session, and reload the function and it's cache.
 `klepto` is part of `pathos`, a python framework for heterogenous computing.
 `klepto` is in active development, so any user feedback, bug reports, comments,
 or suggestions are highly appreciated.  A list of known issues is maintained
-at http://trac.mystic.cacr.caltech.edu/project/pathos/query, with a public
+at http://trac.mystic.cacr.caltech.edu/project/pathos/query.html, with a public
 ticket list at https://github.com/uqfoundation/klepto/issues.
 
 
@@ -68,13 +68,7 @@ Major Features
 Current Release
 ---------------
 The latest released version of `klepto` is available from::
-    http://trac.mystic.cacr.caltech.edu/project/pathos
-
-or::
-    https://github.com/uqfoundation/klepto/releases
-
-or also::
-    https://pypi.python.org/pypi/klepto
+    https://pypi.org/project/klepto
 
 `klepto` is distributed under a 3-clause BSD license.
 
