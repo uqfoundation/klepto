@@ -3,15 +3,18 @@
 klepto package documentation
 ============================
 
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
-
 .. automodule:: klepto
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :private-members:
+    :special-members:
+    :show-inheritance:
 
+.. toctree::
+    :maxdepth: 2
+    :caption: Contents:
+
+    klepto
 
 Indices and tables
 ==================

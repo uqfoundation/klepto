@@ -19,7 +19,7 @@
 import os
 from datetime import datetime
 # import sys
-# sys.path.insert(0, os.path.abspath('../..'))
+# sys.path.insert(0, os.path.abspath('../../scripts'))
 
 # Import the project
 import klepto
