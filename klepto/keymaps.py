@@ -60,7 +60,7 @@ class keymap(object):
         sentinel: marker for separating args and kwds in flattened keys
 
         This keymap stores function args and kwds as (args, kwds) if flat=False,
-        or a flattened (*args, zip(**kwds)) if flat=True.  If typed, then
+        or a flattened ``(*args, zip(**kwds))`` if flat=True.  If typed, then
         include a tuple of type information (args, kwds, argstypes, kwdstypes)
         in the generated key.  If a sentinel is given, the sentinel will be
         added to a flattened key to indicate the boundary between args, keys,
@@ -221,7 +221,7 @@ class hashmap(keymap):
         algorithm: string name of hashing algorithm [default: use python's hash]
 
         This keymap stores function args and kwds as (args, kwds) if flat=False,
-        or a flattened (*args, zip(**kwds)) if flat=True.  If typed, then
+        or a flattened ``(*args, zip(**kwds))`` if flat=True.  If typed, then
         include a tuple of type information (args, kwds, argstypes, kwdstypes)
         in the generated key.  If a sentinel is given, the sentinel will be
         added to a flattened key to indicate the boundary between args, keys,
@@ -260,7 +260,7 @@ class stringmap(keymap):
         encoding: string name of string encoding [default: use python's str]
 
         This keymap stores function args and kwds as (args, kwds) if flat=False,
-        or a flattened (*args, zip(**kwds)) if flat=True.  If typed, then
+        or a flattened ``(*args, zip(**kwds))`` if flat=True.  If typed, then
         include a tuple of type information (args, kwds, argstypes, kwdstypes)
         in the generated key.  If a sentinel is given, the sentinel will be
         added to a flattened key to indicate the boundary between args, keys,
@@ -298,7 +298,7 @@ class picklemap(keymap):
         serializer: string name of pickler [default: use python's repr]
 
         This keymap stores function args and kwds as (args, kwds) if flat=False,
-        or a flattened (*args, zip(**kwds)) if flat=True.  If typed, then
+        or a flattened ``(*args, zip(**kwds))`` if flat=True.  If typed, then
         include a tuple of type information (args, kwds, argstypes, kwdstypes)
         in the generated key.  If a sentinel is given, the sentinel will be
         added to a flattened key to indicate the boundary between args, keys,
