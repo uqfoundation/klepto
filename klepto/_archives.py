@@ -603,9 +603,8 @@ class dir_archive(dict):
                 if self.__state__['fast']: #XXX: enable override of 'mode' ?
                     memo = _pickle.load(_file, mmap_mode=self.__state__['memmode'])
                 else:
-                    f = open(_file, 'rb')
-                    memo = dill.load(f)
-                    f.close()
+                    with open(_file, 'rb') as f:
+                        memo = dill.load(f)
             except: #XXX: should only catch the appropriate exceptions
                 memo = None
                 raise KeyError(key)
@@ -646,30 +645,26 @@ class dir_archive(dict):
                     if input: _pickle.dump(key, _args, compress=compression,
                                                        protocol=protocol)
                 else:
-                    f = open(_file, 'wb')
-                    dill.dump(value, f, protocol=protocol)  #XXX: byref=True ?
-                    f.close()
+                    with open(_file, 'wb') as f:
+                        dill.dump(value, f, protocol=protocol)  #XXX: byref=True ?
                     if input:
-                        f = open(_args, 'wb')
-                        dill.dump(key, f, protocol=protocol)
-                        f.close()
+                        with open(_args, 'wb') as f:
+                            dill.dump(key, f, protocol=protocol)
             else: # try to get an import for the object
                 try: memo = getimportable(value, alias='memo', byname=False)
                 except AttributeError: #XXX: HACKY... get classes by name
                     memo = getimportable(value, alias='memo')
                 #XXX: class instances and such fail... abuse pickle here?
                 from .tools import _b
-                f = open(_file, 'wb')
-                f.write(_b(memo))
-                f.close()
+                with open(_file, 'wb') as f:
+                    f.write(_b(memo))
                 if input:
                     try: memo = getimportable(key, alias='memo', byname=False)
                     except AttributeError:
                         memo = getimportable(key, alias='memo')
                     from .tools import _b
-                    f = open(_args, 'wb')
-                    f.write(_b(memo))
-                    f.close()
+                    with open(_args, 'wb') as f:
+                        f.write(_b(memo))
         except OSError:
             "failed to populate directory for '%s'" % key
         # move the results to the proper place
@@ -760,9 +755,8 @@ class file_archive(dict):
         filename = self.__state__['id']
         if self.__state__['serialized']:
             try:
-                f = open(filename, 'rb')
-                memo = dill.load(f)
-                f.close()
+                with open(filename, 'rb') as f:
+                    memo = dill.load(f)
             except:
                 memo = {}
                #raise OSError("error reading file archive %s" % filename)
@@ -795,9 +789,8 @@ class file_archive(dict):
         try:
             if self.__state__['serialized']:
                 protocol = self.__state__['protocol']
-                f = open(_filename, 'wb')
-                dill.dump(memo, f, protocol=protocol)  #XXX: byref=True ?
-                f.close()
+                with open(_filename, 'wb') as f:
+                    dill.dump(memo, f, protocol=protocol)  #XXX: byref=True ?
             else: #XXX: likely_import for each item in dict... ?
                 from .tools import _b
                 open(_filename, 'wb').write(_b('memo = %s' % repr(memo)))

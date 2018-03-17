@@ -226,10 +226,8 @@ class NumpyPickler(Pickler):
             # numerics in a z-file
             _, init_args, state = array.__reduce__()
             # the last entry of 'state' is the data itself
-            zfile = open(filename, 'wb')
-            write_zfile(zfile, state[-1],
-                                compress=self.compress)
-            zfile.close()
+            with open(filename, 'wb') as zfile:
+                write_zfile(zfile, state[-1], compress=self.compress)
             state = state[:-1]
             container = ZNDArrayWrapper(os.path.basename(filename),
                                             init_args, state)
@@ -267,10 +265,8 @@ class NumpyPickler(Pickler):
 
     def close(self):
         if self.compress:
-            zfile = open(self._filename, 'wb')
-            write_zfile(zfile,
-                        self.file.getvalue(), self.compress)
-            zfile.close()
+            with open(self._filename, 'wb') as zfile:
+                write_zfile(zfile, self.file.getvalue(), self.compress)
 
 
 class NumpyUnpickler(Unpickler):
