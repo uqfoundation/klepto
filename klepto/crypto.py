@@ -94,9 +94,16 @@ def serializers(): #FIXME: could be much smarter
     try:
         import imp
         imp.find_module('cloudpickle')
-        return serializers + ('cloudpickle',)
+        serializers += ('cloudpickle',)
     except ImportError:
-        return serializers
+        pass
+    try:
+        import imp
+        imp.find_module('jsonpickle')
+        serializers += ('jsonpickle',)
+    except ImportError:
+        pass
+    return serializers
 
 
 def pickle(object, serializer=None, **kwds):
