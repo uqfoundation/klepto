@@ -13,7 +13,6 @@
 
 If a hashing error occurs, the cached function will be evaluated.
 """
-from __future__ import absolute_import
 from functools import update_wrapper, partial
 from klepto.archives import cache as archive_dict
 from klepto.keymaps import stringmap

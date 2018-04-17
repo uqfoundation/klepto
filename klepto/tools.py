@@ -13,8 +13,6 @@ Main functions exported are::
 
 """
 
-from __future__ import absolute_import
-
 try:
     import ctypes
     # if using `pypy`, pythonapi is not found

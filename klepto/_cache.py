@@ -12,7 +12,6 @@
 """
 a selection of caching decorators
 """
-from __future__ import absolute_import
 from functools import update_wrapper, partial
 from klepto.archives import cache as archive_dict
 from klepto.keymaps import hashmap

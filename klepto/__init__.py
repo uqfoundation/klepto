@@ -6,8 +6,6 @@
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
-from __future__ import absolute_import
-
 # get version numbers, license, and long description
 try:
     from .info import this_version as __version__
@@ -46,7 +44,5 @@ def citation():
     """print citation"""
     print (__doc__[-230:-89])
     return
-
-del absolute_import
 
 # end of file
