@@ -6,7 +6,6 @@
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
-from __future__ import with_statement, absolute_import
 import os
 
 # set version numbers
@@ -120,7 +119,7 @@ Major Features
 Current Release
 ===============
 
-This version is ``klepto-%(relver)s``.
+This documentation is for version ``klepto-%(thisver)s``.
 
 The latest released version of ``klepto`` is available from:
 
@@ -149,8 +148,8 @@ Installation
 download the tarball, unzip, and run the installer::
 
     [download]
-    $ tar -xvzf klepto-%(thisver)s.tar.gz
-    $ cd klepto-%(thisver)s
+    $ tar -xvzf klepto-%(relver)s.tar.gz
+    $ cd klepto-%(relver)s
     $ python setup py build
     $ python setup py install
 
@@ -180,11 +179,12 @@ Optional requirements:
 More Information
 ================
 
-Probably the best way to get started is to look at the tests
-that are provide within ``klepto``. See ``klepto.tests`` for a set of scripts
-that test the caching and archiving functionalities in ``klepto``. The
+Probably the best way to get started is to look at the documentation at
+http://klepto.rtfd.io. Also see ``klepto.tests`` for a set of scripts that
+test the caching and archiving functionalities in ``klepto``.
+You can run the test suite with ``python -m klepto.tests``.  The
 source code is also generally well documented, so further questions may
-be resolved by inspecting the code itself. Please also feel free to submit
+be resolved by inspecting the code itself. Please feel free to submit
 a ticket on github, or ask a question on stackoverflow (**@Mike McKerns**).
 If you would like to share how you use ``klepto`` in your work, please send
 an email (to **mmckerns at uqfoundation dot org**).
@@ -198,7 +198,7 @@ acknowledge use of ``klepto`` by citing the following in your publication::
 
     Michael McKerns and Michael Aivazis,
     "pathos: a framework for heterogeneous computing", 2010- ;
-    http://dev.danse.us/trac/pathos
+    http://trac.mystic.cacr.caltech.edu/project/pathos
 
 Please see http://trac.mystic.cacr.caltech.edu/project/pathos for
 further information.
@@ -249,8 +249,8 @@ setup(name='klepto',
                      'Topic :: Scientific/Engineering',
                      'Topic :: Software Development'),
 
-      packages = ['klepto'],
-      package_dir = {'klepto':'klepto'},
+      packages = ['klepto','klepto.tests'],
+      package_dir = {'klepto':'klepto','klepto.tests':'tests'},
 """ % (target_version, long_description, stable_version, stable_version)
 
 # add dependencies

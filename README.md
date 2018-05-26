@@ -83,11 +83,12 @@ If you have a new contribution, please submit a pull request.
 
 More Information
 ----------------
-Probably the best way to get started is to look at the tests
-that are provide within ``klepto``. See ``klepto.tests`` for a set of scripts
-that test the caching and archiving functionalities in ``klepto``. The
+Probably the best way to get started is to look at the documentation at
+http://klepto.rtfd.io. Also see ``klepto.tests`` for a set of scripts that
+test the caching and archiving functionalities in ``klepto``.
+You can run the test suite with ``python -m klepto.tests``.  The
 source code is also generally well documented, so further questions may
-be resolved by inspecting the code itself. Please also feel free to submit
+be resolved by inspecting the code itself. Please feel free to submit
 a ticket on github, or ask a question on stackoverflow (**@Mike McKerns**).
 If you would like to share how you use ``klepto`` in your work, please send
 an email (to **mmckerns at uqfoundation dot org**).
@@ -100,8 +101,8 @@ acknowledge use of ``klepto`` by citing the following in your publication::
 
     Michael McKerns and Michael Aivazis,
     "pathos: a framework for heterogeneous computing", 2010- ;
-    http://dev.danse.us/trac/pathos
+    http://trac.mystic.cacr.caltech.edu/project/pathos
 
-Please see http://trac.mystic.cacr.caltech.edu/project/pathos for
-further information.
+Please see http://trac.mystic.cacr.caltech.edu/project/pathos or
+http://arxiv.org/pdf/1202.1056 for further information.
 
