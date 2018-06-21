@@ -9,8 +9,8 @@
 import os
 
 # set version numbers
-stable_version = '0.1.5'
-target_version = '0.1.6'
+stable_version = '0.1.5.1'
+target_version = '0.1.5.1'
 is_release = stable_version == target_version
 
 # check if easy_install is available
@@ -167,7 +167,7 @@ Requirements
 ``klepto`` requires:
 
     - ``python``, **version >= 2.5** or **version >= 3.1**, or ``pypy``
-    - ``dill``, **version >= 0.2.8**
+    - ``dill``, **version >= 0.2.8.1**
     - ``pox``, **version >= 0.2.4**
 
 Optional requirements:
@@ -254,7 +254,7 @@ setup(name='klepto',
 """ % (target_version, long_description, stable_version, stable_version)
 
 # add dependencies
-dill_version = '>=0.2.8'
+dill_version = '>=0.2.8.1'
 pox_version = '>=0.2.4'
 sqlalchemy_version = '>=0.8.4'
 import sys
