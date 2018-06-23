@@ -44,6 +44,7 @@ try:
       import pandas
 except ImportError:
   pandas = None
+import json
 import dill
 from dill.source import getimportable
 from pox import mkdir, rmtree, walk
@@ -356,8 +357,10 @@ class dir_archive(dict):
         """
         #XXX: if compression or mode is given, use joblib-style pickling
         #     (ignoring 'serialized'); else if serialized, use dill unless
-        #     fast=True (then use joblib-style pickling). If not serialized,
-        #     then write raw objects and load objects with import.
+        #     fast=True (then use joblib-style pickling), or protocol='json'
+        #     (then use json-style pickling). If not serialized, then write
+        #     raw objects and load objects with import. Also, if fast=True
+        #     and protocol='json', the use protocol=None. #FIXME: needs doc
         """dirname = full filepath"""
         if dirname is None: #FIXME: default root as /tmp or something better
             dirname = 'memo' #FIXME: need better default
@@ -582,7 +585,7 @@ class dir_archive(dict):
         "get a dict of subdirectories in the root directory, with dummy values"
         keys = self._lsdir()
         return dict((self._getkey(key),None) for key in keys)
-
+        #FIXME: dict((i,self._getkey(key)) for i,key in enumerate(keys))
     def _reverse_lookup(self, args): #XXX: guaranteed 1-to-1 mapping?
         "get subdirectory name from args"
         d = {}
@@ -606,8 +609,13 @@ class dir_archive(dict):
                 if self.__state__['fast']: #XXX: enable override of 'mode' ?
                     memo = _pickle.load(_file, mmap_mode=self.__state__['memmode'])
                 else:
-                    with open(_file, 'rb') as f:
-                        memo = dill.load(f)
+                    protocol = self.__state__['protocol']
+                    if type(protocol) is str: #XXX: assumes json
+                        pik,mode = json,'r'
+                    else:
+                        pik,mode = dill,'rb'
+                    with open(_file, mode) as f:
+                        memo = pik.load(f)
             except: #XXX: should only catch the appropriate exceptions
                 memo = None
                 raise KeyError(key)
@@ -642,17 +650,22 @@ class dir_archive(dict):
             if self.__state__['serialized']:
                 protocol = self.__state__['protocol']
                 if self.__state__['fast']:
+                    protocol = None if type(protocol) is str else protocol
                     compression = self.__state__['compression']
                     _pickle.dump(value, _file, compress=compression,
                                                protocol=protocol)
                     if input: _pickle.dump(key, _args, compress=compression,
                                                        protocol=protocol)
                 else:
-                    with open(_file, 'wb') as f:
-                        dill.dump(value, f, protocol=protocol)  #XXX: byref=True ?
+                    if type(protocol) is str: #XXX: assumes json
+                        pik,mode,kwd = json,'w',{}
+                    else: #XXX: byref?
+                        pik,mode,kwd = dill,'wb',{'protocol':protocol}
+                    with open(_file, mode) as f:
+                        pik.dump(value, f, **kwd)
                     if input:
-                        with open(_args, 'wb') as f:
-                            dill.dump(key, f, protocol=protocol)
+                        with open(_args, mode) as f:
+                            pik.dump(key, f, **kwd)
             else: # try to get an import for the object
                 try: memo = getimportable(value, alias='memo', byname=False)
                 except AttributeError: #XXX: HACKY... get classes by name
@@ -680,10 +693,18 @@ class dir_archive(dict):
             "error in populating directory for '%s'" % key
 
     def _get_args(self):
-        if self.__state__['serialized']: return 'input.pkl'
+        if self.__state__['serialized']:
+            if type(self.__state__['protocol']) is str \
+            and not self.__state__['fast']:
+                return 'input.json'
+            else: return 'input.pkl'
         return '__args__.py'
     def _get_file(self):
-        if self.__state__['serialized']: return 'output.pkl'
+        if self.__state__['serialized']:
+            if type(self.__state__['protocol']) is str \
+            and not self.__state__['fast']:
+                return 'output.json'
+            else: return 'output.pkl'
         return '__init__.py'
     def _set_file(self, file):
         raise NotImplementedError("cannot set attribute '_file'")
@@ -735,15 +756,18 @@ class file_archive(dict):
         protocol: pickling protocol [default: None (use the default protocol)]
         """
         """filename = full filepath"""
-        if filename is None:
-            if serialized: filename = 'memo.pkl' #FIXME: need better default
-            else: filename = 'memo.py' #FIXME: need better default
+        #FIXME: (needs doc) if protocol='json', use the json serializer
+        protocol = kwds.get('protocol', None)
+        if filename is None: #XXX: need better default filename?
+            if serialized:
+                filename = 'memo.json' if type(protocol) is str else 'memo.pkl'
+            else: filename = 'memo.py'
         elif not serialized and not filename.endswith(('.py','.pyc','.pyo','.pyd')): filename = filename+'.py'
         # set state
         self.__state__ = {
             'id': filename,
             'serialized': serialized,
-            'protocol': kwds.get('protocol', None)
+            'protocol': protocol
         } #XXX: add 'cloud' option?
         if not os.path.exists(filename):
             self.__save__({})
@@ -757,9 +781,14 @@ class file_archive(dict):
         """build a dictionary containing the archive contents"""
         filename = self.__state__['id']
         if self.__state__['serialized']:
+            protocol = self.__state__['protocol']
+            if type(protocol) is str:
+                pik,mode = json,'r'
+            else:
+                pik,mode = dill,'rb'
             try:
-                with open(filename, 'rb') as f:
-                    memo = dill.load(f)
+                with open(filename, mode) as f:
+                    memo = pik.load(f)
             except:
                 memo = {}
                #raise OSError("error reading file archive %s" % filename)
@@ -792,8 +821,12 @@ class file_archive(dict):
         try:
             if self.__state__['serialized']:
                 protocol = self.__state__['protocol']
-                with open(_filename, 'wb') as f:
-                    dill.dump(memo, f, protocol=protocol)  #XXX: byref=True ?
+                if type(protocol) is str: #XXX: assumes 'json'
+                    pik,mode,kwd = json,'w',{}
+                else: #XXX: byref=True ?
+                    pik,mode,kwd = dill,'wb',{'protocol':protocol}
+                with open(_filename, mode) as f:
+                    pik.dump(memo, f, **kwd)
             else: #XXX: likely_import for each item in dict... ?
                 from .tools import _b
                 open(_filename, 'wb').write(_b('memo = %s' % repr(memo)))
@@ -1001,6 +1034,7 @@ if sql:
           serialized: if True, pickle table contents; otherwise cast as strings
           protocol: pickling protocol [default: None (use the default protocol)]
           """
+          #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_sql__()
           # create database, if doesn't exist
           if database is None: database = 'sqlite:///:memory:'
@@ -1236,7 +1270,10 @@ if sql:
           keytype = sql.String(255)
           if self.__state__['serialized']:
               proto = self.__state__['protocol']
-              valtype = sql.PickleType(protocol=proto, pickler=dill)
+              if type(proto) is str: #XXX: assumes 'json'
+                  valtype = sql.PickleType(pickler=json)
+              else:
+                  valtype = sql.PickleType(protocol=proto, pickler=dill)
           else: valtype = sql.Text()
           # create table, if doesn't exist
           table = sql.Table(table, self._metadata,
@@ -1331,6 +1368,7 @@ if sql:
           serialized: if True, pickle table contents; otherwise cast as strings
           protocol: pickling protocol [default: None (use the default protocol)]
           """
+          #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_sql__()
           if table is None: table = 'memo' #XXX: better random unique id ?
           # create database, if doesn't exist
@@ -1385,7 +1423,10 @@ if sql:
           keytype = sql.String(255) #XXX: other better fixed size?
           if self.__state__['serialized']:
               proto = self.__state__['protocol']
-              valtype = sql.PickleType(protocol=proto, pickler=dill)
+              if type(proto) is str: #XXX: assumes 'json'
+                  valtype = sql.PickleType(pickler=json)
+              else:
+                  valtype = sql.PickleType(protocol=proto, pickler=dill)
           else:
               valtype = sql.Text() #XXX: String(255) or BLOB() ???
           # create table, if doesn't exist
@@ -1936,6 +1977,7 @@ if hdf:
           protocol: pickling protocol [default: None (use the default protocol)]
           meta: if True, store as file root metadata; otherwise store in datasets
           """
+          #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_hdf__()
           if filename is None: filename = 'memo.hdf5'
           elif not filename.endswith(('.hdf5','.hdf','.h5')): filename = filename+'.hdf5'
@@ -1960,20 +2002,27 @@ if hdf:
       def _loadkey(self, key): # get a key from the archive
           'convert from a key stored in the HDF file'
           #key = key.encode() if type(key) is str else key
-          return dill.loads(key)
+          pik = json if type(self.__state__['protocol']) is str else dill
+          return pik.loads(key)
       def _loadval(self, value): # get a value from the archive
           'convert from a value stored in the HDF file'
+          pik = json if type(self.__state__['protocol']) is str else dill
           if self.__state__['meta']:
-              return dill.loads(value) if self.__state__['serialized'] else value
-          return dill.loads(value[0]) if self.__state__['serialized'] else value.value #XXX: correct for arrays?
+              return pik.loads(value) if self.__state__['serialized'] else value
+          return pik.loads(value[0]) if self.__state__['serialized'] else value.value #XXX: correct for arrays?
       def _dumpkey(self, key): # lookup a key in the archive
           'convert to a key stored in the HDF file'
+          if type(self.__state__['protocol']) is str:
+              return json.dumps(key).encode()
           return dill.dumps(key, protocol=0)
       def _dumpval(self, value): # lookup a value in the archive
           'convert to a value stored in the HDF file'
           if self.__state__['serialized']:
-              protocol = self.__state__['protocol']
-              value = dill.dumps(value, protocol=protocol) #XXX: fix at 0?
+              protocol = self.__state__['protocol'] #XXX: fix at 0?
+              if type(protocol) is str:
+                  value = json.dumps(value).encode()
+              else:
+                  value = dill.dumps(value, protocol=protocol)
               return value if self.__state__['meta'] else [value]
           return value #XXX: or [value]? (so no scalars)
       def __asdict__(self):
@@ -1985,6 +2034,10 @@ if hdf:
               _f = self._attrs(f)
               for k,v in getattr(f, 'iteritems', f.items)():
                   memo[self._loadkey(k.encode())] = self._loadval(v)
+          except TypeError: # we have an unhashable type
+              f = None
+              memo = {}
+              'unhashable type'
           except: #XXX: should only catch appropriate exceptions
               f = None
               memo = {}
@@ -2268,6 +2321,7 @@ if hdf:
           protocol: pickling protocol [default: None (use the default protocol)]
           meta: if True, store as file root metadata; otherwise store in datasets
           """
+          #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_hdf__()
           if dirname is None: #FIXME: default root as /tmp or something better
               dirname = 'memo' #FIXME: need better default
@@ -2434,6 +2488,7 @@ if hdf:
           try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
           except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
           return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+          #XXX: special handling in ispickle for protocol=json?
          ##XXX: below probably fails on windows, and could be huge... use 'md5'
          #return repr(key)[1:-1] if ispickle else str(key) # or repr?
       def _mkdir(self, key):
@@ -2465,6 +2520,7 @@ if hdf:
           "get a dict of subdirectories in the root directory, with dummy values"
           keys = self._lsdir()
           return dict((self._getkey(key),None) for key in keys)
+          #FIXME: dict((i,self._getkey(key)) for i,key in enumerate(keys))
       def _reverse_lookup(self, args): #XXX: guaranteed 1-to-1 mapping?
           "get subdirectory name from args"
           d = {}
@@ -2495,6 +2551,9 @@ if hdf:
              #memo = next(iter(hdf_archive(_file, **adict).values()))
           except: #XXX: should only catch the appropriate exceptions
               memo = None
+              #FIXME: not sure if _lookup should delete a key in all cases
+              #FIXME: (maybe only delete key when it's new, but fails)
+              #self._rmdir(key) # don't leave a keyfile on disk
               raise KeyError(key)
              #raise OSError("error reading directory for '%s'" % key)
           return memo
@@ -2507,8 +2566,6 @@ if hdf:
           try:
               _file = os.path.join(self._mkdir(_key), self._file)
               if input: _args = os.path.join(self._getdir(_key), self._args)
-
-              protocol = self.__state__['protocol']
               adict = {'serialized':self.__state__['serialized'],\
                        'protocol':self.__state__['protocol'],\
                        'meta':self.__state__['meta']}
@@ -2518,7 +2575,7 @@ if hdf:
               if input:
                   memo = hdf_archive(_args, **adict)
                   memo[None] = key
-          except OSError:
+          except (OSError,TypeError):
               "failed to populate directory for '%s'" % key
           # move the results to the proper place
           try: #XXX: possible permissions issues here
