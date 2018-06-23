@@ -71,7 +71,11 @@ def _to_frame(archive):
     name = d.archive.name
     name = '' if name is None else name
     df = df.from_dict({name: d if cached else d.__asdict__()})
-    if cached: df = pandas.concat([df[name],df.from_dict({cache:d.archive.__asdict__()})[cache]],axis=1)
+    if cached:
+        if pandas.__version__ > '0.23':
+            df = pandas.concat([df[name],df.from_dict({cache:d.archive.__asdict__()})[cache]],axis=1,sort=False)
+        else:
+            df = pandas.concat([df[name],df.from_dict({cache:d.archive.__asdict__()})[cache]],axis=1)
    #df.sort_index(axis=1, ascending=False, inplace=True)
     df.columns.name = d.archive.__class__.__name__#.rsplit('_archive')[0]
     df.index.name = repr(d.archive.state)
@@ -1955,6 +1959,7 @@ if hdf:
           return file.attrs if self.__state__['meta'] else file
       def _loadkey(self, key): # get a key from the archive
           'convert from a key stored in the HDF file'
+          #key = key.encode() if type(key) is str else key
           return dill.loads(key)
       def _loadval(self, value): # get a value from the archive
           'convert from a value stored in the HDF file'
@@ -1979,7 +1984,7 @@ if hdf:
               f = hdf.File(filename, 'r')
               _f = self._attrs(f)
               for k,v in getattr(f, 'iteritems', f.items)():
-                  memo[self._loadkey(k)] = self._loadval(v)
+                  memo[self._loadkey(k.encode())] = self._loadval(v)
           except: #XXX: should only catch appropriate exceptions
               f = None
               memo = {}
@@ -2483,10 +2488,10 @@ if hdf:
           try:
               adict = {'serialized':self.__state__['serialized'],\
                        'protocol':self.__state__['protocol'],\
-                       'meta':self.__state__['meta']}
+                       'meta':self.__state__['meta'], 'cached':False}
               #XXX: assumes one entry per file; ...could use name as key?
               #XXX: alternately, could store {key:value} (i.e. use one file)?
-              memo = tuple(hdf_archive(_file, **adict).values())[0]
+              memo = tuple(hdf_archive(_file, **adict).__asdict__().values())[0]
              #memo = next(iter(hdf_archive(_file, **adict).values()))
           except: #XXX: should only catch the appropriate exceptions
               memo = None
