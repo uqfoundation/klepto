@@ -172,7 +172,11 @@ Requirements
 
 Optional requirements:
 
+    - ``h5py``, **version >= 2.8.0**
+    - ``pandas``, **version >= 0.17.0**
     - ``sqlalchemy``, **version >= 0.8.4**
+    - ``jsonpickle``, **version >= 0.9.6**
+    - ``cloudpickle``, **version >= 0.5.2**
     - ``setuptools``, **version >= 0.6**
 
 
@@ -256,13 +260,16 @@ setup(name='klepto',
 # add dependencies
 dill_version = '>=0.2.8.2'
 pox_version = '>=0.2.4'
+h5py_version = '>=2.8.0'
 sqlalchemy_version = '>=0.8.4'
+pandas_version = '>=0.17.0'
 import sys
 if has_setuptools:
     setup_code += """
       zip_safe=False,
       install_requires = ['dill%s','pox%s'],
-""" % (dill_version, pox_version)
+      extras_require = {'archives': ['h5py%s','sqlalchemy%s','pandas%s']},
+""" % (dill_version, pox_version, h5py_version, sqlalchemy_version, pandas_version)
 
 # add the scripts, and close 'setup' call
 setup_code += """
