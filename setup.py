@@ -167,7 +167,7 @@ Requirements
 ``klepto`` requires:
 
     - ``python``, **version >= 2.5** or **version >= 3.1**, or ``pypy``
-    - ``dill``, **version >= 0.2.8.2**
+    - ``dill``, **version >= 0.2.9**
     - ``pox``, **version >= 0.2.5**
 
 Optional requirements:
@@ -258,7 +258,7 @@ setup(name='klepto',
 """ % (target_version, long_description, stable_version, stable_version)
 
 # add dependencies
-dill_version = '>=0.2.8.2'
+dill_version = '>=0.2.9'
 pox_version = '>=0.2.5'
 h5py_version = '>=2.8.0'
 sqlalchemy_version = '>=0.8.4'
