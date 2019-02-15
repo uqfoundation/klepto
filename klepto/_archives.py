@@ -143,6 +143,16 @@ class cache(dict):
     def to_frame(self):
         return _to_frame(self)
     to_frame.__doc__ = _to_frame.__doc__
+    def popkeys(self, keys, *value):
+        """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+        if not hasattr(keys, '__iter__'):
+            return self.pop(keys, *value)
+        if len(value):
+            return [self.pop(k, *value) for k in keys]
+        memo = self.fromkeys(self.keys())
+        [memo.pop(k) for k in keys]
+        return [self.pop(k) for k in keys]
     def load(self, *args): #FIXME: archive may use key 'encoding' (dir_archive)
         """load archive contents
 
@@ -514,6 +524,16 @@ class dir_archive(dict):
         def viewitems(self):
             return ItemsView(self) #XXX: show items not dict
         viewitems.__doc__ = dict.viewitems.__doc__
+    def popkeys(self, keys, *value):
+        """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+        if not hasattr(keys, '__iter__'):
+            return self.pop(keys, *value)
+        if len(value):
+            return [self.pop(k, *value) for k in keys]
+        memo = self._keydict() # 'shadow' dict for desired error behavior
+        [memo.pop(k) for k in keys]
+        return [self.pop(k) for k in keys]
     def pop(self, key, *value): #XXX: or make DEAD ?
         try:
             memo = {key: self.__getitem__(key)}
@@ -935,6 +955,15 @@ class file_archive(dict):
         def viewitems(self):
             return ItemsView(self) #XXX: show items not dict
         viewitems.__doc__ = dict.viewitems.__doc__
+    def popkeys(self, keys, *value):
+        """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+        if not hasattr(keys, '__iter__'):
+            return self.pop(keys, *value)
+        memo = self.__asdict__()
+        res = [memo.pop(k, *value) for k in keys]
+        self.__save__(memo)
+        return res
     def pop(self, key, *value):
         memo = self.__asdict__()
         res = memo.pop(key, *value)
@@ -1232,6 +1261,16 @@ if sql:
           def viewitems(self):
               return ItemsView(self) #XXX: show items not dict
           viewitems.__doc__ = dict.viewitems.__doc__
+      def popkeys(self, keys, *value):
+          """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+          if not hasattr(keys, '__iter__'):
+              return self.pop(keys, *value)
+          if len(value):
+              return [self.pop(k, *value) for k in keys]
+          memo = self.fromkeys(self._keys()) # 'shadow' dict
+          [memo.pop(k) for k in keys]
+          return [self.pop(k) for k in keys]
       def pop(self, key, *value):
           try:
               memo = {key: self.__getitem__(key)}
@@ -1614,6 +1653,16 @@ if sql:
           def viewitems(self):
               return ItemsView(self) #XXX: show items not dict
           viewitems.__doc__ = dict.viewitems.__doc__
+      def popkeys(self, keys, *value):
+          """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+          if not hasattr(keys, '__iter__'):
+              return self.pop(keys, *value)
+          if len(value):
+              return [self.pop(k, *value) for k in keys]
+          memo = self.fromkeys(self.keys()) # 'shadow' dict
+          [memo.pop(k) for k in keys]
+          return [self.pop(k) for k in keys]
       def pop(self, key, *value):
           L = len(value)
           if L > 1:
@@ -1882,6 +1931,16 @@ else:
           def viewitems(self):
               return ItemsView(self) #XXX: show items not dict
           viewitems.__doc__ = dict.viewitems.__doc__
+      def popkeys(self, keys, *value):
+          """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+          if not hasattr(keys, '__iter__'):
+              return self.pop(keys, *value)
+          if len(value):
+              return [self.pop(k, *value) for k in keys]
+          memo = self.fromkeys(self.keys()) # 'shadow' dict
+          [memo.pop(k) for k in keys]
+          return [self.pop(k) for k in keys]
       def pop(self, key, *value):
           L = len(value)
           if L > 1:
@@ -2224,6 +2283,16 @@ if hdf:
           def viewitems(self):
               return ItemsView(self) #XXX: show items not dict
           viewitems.__doc__ = dict.viewitems.__doc__
+      def popkeys(self, keys, *value):
+          """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+          if not hasattr(keys, '__iter__'):
+              return self.pop(keys, *value)
+          if len(value):
+              return [self.pop(k, *value) for k in keys]
+          memo = self.fromkeys(self.keys()) # 'shadow' dict
+          [memo.pop(k) for k in keys]
+          return [self.pop(k) for k in keys] #XXX: should open file once
       def pop(self, key, *value):
           value = (self._dumpval(val) for val in value)
           filename = self.__state__['id']
@@ -2452,6 +2521,16 @@ if hdf:
           def viewitems(self):
               return ItemsView(self) #XXX: show items not dict
           viewitems.__doc__ = dict.viewitems.__doc__
+      def popkeys(self, keys, *value):
+          """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
+    If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
+          if not hasattr(keys, '__iter__'):
+              return self.pop(keys, *value)
+          if len(value):
+              return [self.pop(k, *value) for k in keys]
+          memo = self._keydict() # 'shadow' dict for desired error behavior
+          [memo.pop(k) for k in keys]
+          return [self.pop(k) for k in keys]
       def pop(self, key, *value): #XXX: or make DEAD ?
           try:
               memo = {key: self.__getitem__(key)}
