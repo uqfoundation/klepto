@@ -464,11 +464,17 @@ class lfu_cache(object):
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Frequently_Used
     """
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __new__(cls, *args, **kwds):
+        maxsize = kwds.get('maxsize', -1)
         if maxsize == 0:
-            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+            return no_cache(*args, **kwds)
         if maxsize is None:
-            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+            return inf_cache(*args, **kwds)
+        return object.__new__(cls, *args, **kwds)
+
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+        if maxsize is None or maxsize == 0:
+            return
         if cache is None: cache = archive_dict()
         elif type(cache) is dict: cache = archive_dict(cache)
 
@@ -687,11 +693,17 @@ class lru_cache(object):
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used
     """
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __new__(cls, *args, **kwds):
+        maxsize = kwds.get('maxsize', -1)
         if maxsize == 0:
-            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+            return no_cache(*args, **kwds)
         if maxsize is None:
-            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+            return inf_cache(*args, **kwds)
+        return object.__new__(cls, *args, **kwds)
+
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+        if maxsize is None or maxsize == 0:
+            return
         if cache is None: cache = archive_dict()
         elif type(cache) is dict: cache = archive_dict(cache)
 
@@ -941,11 +953,17 @@ class mru_cache(object):
 
     See: http://en.wikipedia.org/wiki/Cache_algorithms#Most_Recently_Used
     """
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __new__(cls, *args, **kwds):
+        maxsize = kwds.get('maxsize', -1)
         if maxsize == 0:
-            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+            return no_cache(*args, **kwds)
         if maxsize is None:
-            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+            return inf_cache(*args, **kwds)
+        return object.__new__(cls, *args, **kwds)
+
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+        if maxsize is None or maxsize == 0:
+            return
         if cache is None: cache = archive_dict()
         elif type(cache) is dict: cache = archive_dict(cache)
 
@@ -1167,11 +1185,17 @@ class rr_cache(object):
 
     http://en.wikipedia.org/wiki/Cache_algorithms#Random_Replacement
     """
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __new__(cls, *args, **kwds):
+        maxsize = kwds.get('maxsize', -1)
         if maxsize == 0:
-            return no_cache(cache=cache, keymap=keymep, ignore=ignore, tol=tol, deep=deep)
+            return no_cache(*args, **kwds)
         if maxsize is None:
-            return inf_cache(cache=cache, keymap=keymap, ignore=ignore, tol=tol, deep=deep)
+            return inf_cache(*args, **kwds)
+        return object.__new__(cls, *args, **kwds)
+
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+        if maxsize is None or maxsize == 0:
+            return
         if cache is None: cache = archive_dict()
         elif type(cache) is dict: cache = archive_dict(cache)
 
