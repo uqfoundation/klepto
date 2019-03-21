@@ -450,7 +450,7 @@ class lfu_cache(object):
             return no_cache(*args, **kwds)
         if maxsize is None:
             return inf_cache(*args, **kwds)
-        return object.__new__(cls, *args, **kwds)
+        return object.__new__(cls)
 
     def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
         if maxsize is None or maxsize == 0:
@@ -670,7 +670,7 @@ class lru_cache(object):
             return no_cache(*args, **kwds)
         if maxsize is None:
             return inf_cache(*args, **kwds)
-        return object.__new__(cls, *args, **kwds)
+        return object.__new__(cls)
 
     def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
         if maxsize is None or maxsize == 0:
@@ -920,7 +920,7 @@ class mru_cache(object):
             return no_cache(*args, **kwds)
         if maxsize is None:
             return inf_cache(*args, **kwds)
-        return object.__new__(cls, *args, **kwds)
+        return object.__new__(cls)
 
     def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
         if maxsize is None or maxsize == 0:
@@ -1142,7 +1142,7 @@ class rr_cache(object):
             return no_cache(*args, **kwds)
         if maxsize is None:
             return inf_cache(*args, **kwds)
-        return object.__new__(cls, *args, **kwds)
+        return object.__new__(cls)
 
     def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
         if maxsize is None or maxsize == 0:
