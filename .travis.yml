@@ -50,6 +50,9 @@ matrix:
           sudo: false
           env:
             - COVERAGE="true"
+            - PANDAS="true"
+            - SQLALCHEMY="true"
+            - H5PY="true"
 
         - python: '3.7'
           dist: xenial
@@ -93,6 +96,9 @@ cache:
 before_install:
     - set -e  # fail on any error
     - if [[ $COVERAGE == "true" ]]; then pip install coverage; fi
+    - if [[ $PANDAS == "true" ]]; then pip install pandas; fi
+    - if [[ $SQLALCHEMY == "true" ]]; then pip install sqlalchemy; fi
+    - if [[ $H5PY == "true" ]]; then pip install h5py; fi
 
 install:
     - python setup.py build && python setup.py install
