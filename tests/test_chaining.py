@@ -18,8 +18,10 @@ def test_chaining():
     assert h(1) == 'c4ca4238a0b923820dcc509a6f75849b'
     if sys.version_info[0] == 2:
         assert hp(1) == 'ee7f32117eab97ec5460313282938c93'
-    else: #XXX: different, because 3.x returns b'' while 2.x returns ''
+    elif sys.version_info[1] < 8:
         assert hp(1) == 'a2ed37e4f2f0ccf8be170d8c31c711b2'
+    else: #XXX: because 3.x returns b'', 2.x returns '', and 3.8 is weird
+        assert hp(1) == 'bfac8a39dc4b0d616a0805a453698556'
     assert h(p(1)) == hp(1)
     assert hp.inner(1) == p(1)
     assert hp.outer(1) == h(1)
