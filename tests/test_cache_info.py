@@ -16,7 +16,7 @@ from klepto.tools import IS_PYPY
 def _test_hits(algorithm, maxsize=20, keymap=None,
                rangelimit=5, tries=1000, archived=False):
 
-    @algorithm(maxsize=maxsize, keymap=keymap)
+    @algorithm(maxsize=maxsize, keymap=keymap, purge=True)
     def f(x, y):
         return 3*x+y
 

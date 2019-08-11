@@ -434,7 +434,7 @@ class lfu_cache(object):
     ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
-    purge = boolean for purge cache to archive at maxsize (default is True)
+    purge = boolean for purge cache to archive at maxsize (default is False)
 
     If *maxsize* is None, this cache will grow without bound.
 
@@ -472,7 +472,7 @@ class lfu_cache(object):
             return inf_cache(*args, **kwds)
         return object.__new__(cls)
 
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=False):
         if maxsize is None or maxsize == 0:
             return
         if cache is None: cache = archive_dict()
@@ -663,7 +663,7 @@ class lru_cache(object):
     ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
-    purge = boolean for purge cache to archive at maxsize (default is True)
+    purge = boolean for purge cache to archive at maxsize (default is False)
 
     If *maxsize* is None, this cache will grow without bound.
 
@@ -701,7 +701,7 @@ class lru_cache(object):
             return inf_cache(*args, **kwds)
         return object.__new__(cls)
 
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=False):
         if maxsize is None or maxsize == 0:
             return
         if cache is None: cache = archive_dict()
@@ -923,7 +923,7 @@ class mru_cache(object):
     ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
-    purge = boolean for purge cache to archive at maxsize (default is True)
+    purge = boolean for purge cache to archive at maxsize (default is False)
 
     If *maxsize* is None, this cache will grow without bound.
 
@@ -961,7 +961,7 @@ class mru_cache(object):
             return inf_cache(*args, **kwds)
         return object.__new__(cls)
 
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=False):
         if maxsize is None or maxsize == 0:
             return
         if cache is None: cache = archive_dict()
@@ -1155,7 +1155,7 @@ class rr_cache(object):
     ignore = function argument names and indicies to 'ignore' (default is None)
     tol = integer tolerance for rounding (default is None)
     deep = boolean for rounding depth (default is False, i.e. 'shallow')
-    purge = boolean for purge cache to archive at maxsize (default is True)
+    purge = boolean for purge cache to archive at maxsize (default is False)
 
     If *maxsize* is None, this cache will grow without bound.
 
@@ -1193,7 +1193,7 @@ class rr_cache(object):
             return inf_cache(*args, **kwds)
         return object.__new__(cls)
 
-    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=True):
+    def __init__(self, maxsize=100, cache=None, keymap=None, ignore=None, tol=None, deep=False, purge=False):
         if maxsize is None or maxsize == 0:
             return
         if cache is None: cache = archive_dict()

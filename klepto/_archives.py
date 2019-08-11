@@ -2068,7 +2068,7 @@ if hdf:
           pik = json if type(self.__state__['protocol']) is str else dill
           if self.__state__['meta']:
               return pik.loads(value) if self.__state__['serialized'] else value
-          return pik.loads(value[0]) if self.__state__['serialized'] else value.value #XXX: correct for arrays?
+          return pik.loads(value[0]) if self.__state__['serialized'] else value[()] #XXX: correct for arrays?
       def _dumpkey(self, key): # lookup a key in the archive
           'convert to a key stored in the HDF file'
           if type(self.__state__['protocol']) is str:
