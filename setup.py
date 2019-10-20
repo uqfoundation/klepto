@@ -128,7 +128,7 @@ The latest released version of ``klepto`` is available from:
 ``klepto`` is distributed under a 3-clause BSD license.
 
     >>> import klepto
-    >>> print (klepto.license())
+    >>> klepto.license()
 
 
 Development Version 
@@ -166,7 +166,7 @@ Requirements
 
 ``klepto`` requires:
 
-    - ``python``, **version >= 2.5** or **version >= 3.1**, or ``pypy``
+    - ``python``, **version >= 2.6** or **version >= 3.2**, or ``pypy``
     - ``dill``, **version >= 0.3.1**
     - ``pox``, **version >= 0.2.7**
 
