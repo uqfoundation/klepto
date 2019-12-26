@@ -14,11 +14,15 @@ import shutil
 from random import random
 from pickle import PROTO, STOP
 try:
-  from collections import KeysView, ValuesView, ItemsView
-  _view = getattr(dict, 'viewkeys', False)
-  _view = True if _view else False # True if 2.7
-except ImportError:
+  from collections.abc import KeysView, ValuesView, ItemsView
   _view = False
+except ImportError:
+  try:
+    from collections import KeysView, ValuesView, ItemsView
+    _view = getattr(dict, 'viewkeys', False)
+    _view = True if _view else False # True if 2.7
+  except ImportError:
+    _view = False
 import imp
 try:
   imp.find_module('sqlalchemy')

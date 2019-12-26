@@ -45,7 +45,9 @@ def encodings():
         utype = ('unicode','bytes')
     except NameError:
         utype = tuple()
-        pop = [t for t in algs if t.endswith('_codec')] + ['tactis']
+        if 'tactis' in algs:
+            algs.remove('tactis')
+        pop = [t for t in algs if t.endswith('_codec')]
         [algs.remove(t) for t in pop] #FIXME: giving up here for 3.x...
         # (any '*_codec' throws 'str' does not support the buffer interface)
     stype = ('str','repr')
