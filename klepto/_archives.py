@@ -706,15 +706,15 @@ class dir_archive(dict):
                     with open(_args, 'wb') as f:
                         f.write(_b(memo))
         except OSError:
-            "failed to populate directory for '%s'" % key
+            "failed to populate directory for '%s'" % str(key)
         # move the results to the proper place
         try: #XXX: possible permissions issues here
             self._rmdir(key) #XXX: 'key' must be a suitable dir name
             os.renames(self._getdir(_key), self._getdir(key))
 #       except TypeError: #XXX: catch key that isn't converted to safe filename
-#           "error in populating directory for '%s'" % key
+#           "error in populating directory for '%s'" % str(key)
         except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
-            "error in populating directory for '%s'" % key
+            "error in populating directory for '%s'" % str(key)
 
     def _get_args(self):
         if self.__state__['serialized']:
@@ -855,7 +855,7 @@ class file_archive(dict):
                 from .tools import _b
                 open(_filename, 'wb').write(_b('memo = %s' % repr(memo)))
         except OSError:
-            "failed to populate file for %s" % filename
+            "failed to populate file for %s" % str(filename)
         # move the results to the proper place
         try:
             os.remove(filename)
@@ -863,7 +863,7 @@ class file_archive(dict):
         try:
             os.renames(_filename, filename)
         except OSError:
-            "error in populating %s" % filename
+            "error in populating %s" % str(filename)
         return
     #FIXME: missing __cmp__, __...__
     def __eq__(self, y):
@@ -2124,7 +2124,7 @@ if hdf:
                   _f[_k] = self._dumpval(v)
           except OSError:
               f = None
-              "failed to populate file for %s" % filename
+              "failed to populate file for %s" % str(filename)
           finally:
               if f is not None: f.close()
           if not new: return
@@ -2135,7 +2135,7 @@ if hdf:
           try:
               os.renames(_filename, filename)
           except OSError:
-              "error in populating %s" % filename
+              "error in populating %s" % str(filename)
           return
       #FIXME: missing __cmp__, __...__
       def __eq__(self, y):
@@ -2659,15 +2659,15 @@ if hdf:
                   memo = hdf_archive(_args, **adict)
                   memo[None] = key
           except (OSError,TypeError):
-              "failed to populate directory for '%s'" % key
+              "failed to populate directory for '%s'" % str(key)
           # move the results to the proper place
           try: #XXX: possible permissions issues here
               self._rmdir(key) #XXX: 'key' must be a suitable dir name
               os.renames(self._getdir(_key), self._getdir(key))
 #         except TypeError: #XXX: catch key that isn't converted to safe filename
-#             "error in populating directory for '%s'" % key
+#             "error in populating directory for '%s'" % str(key)
           except OSError: #XXX: if rename fails, may need cleanup (_rmdir ?)
-              "error in populating directory for '%s'" % key
+              "error in populating directory for '%s'" % str(key)
       def _get_args(self):
           return 'input.hdf5'
       def _get_file(self):
