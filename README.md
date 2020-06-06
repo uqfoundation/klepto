@@ -25,9 +25,7 @@ start a new session, and reload the function and it's cache.
 
 ``klepto`` is part of ``pathos``, a python framework for heterogenous computing.
 ``klepto`` is in active development, so any user feedback, bug reports, comments,
-or suggestions are highly appreciated.  A list of known issues is maintained
-at http://trac.mystic.cacr.caltech.edu/project/pathos/query.html, with a public
-ticket list at https://github.com/uqfoundation/klepto/issues.
+or suggestions are highly appreciated.  A list of issues is located at https://github.com/uqfoundation/klepto/issues, with a legacy list maintained at https://uqfoundation.github.io/pathos-issues.html.
 
 
 Major Features
@@ -77,6 +75,7 @@ Development Version
 [![Documentation Status](https://readthedocs.org/projects/klepto/badge/?version=latest)](https://klepto.readthedocs.io/en/latest/?badge=latest)
 [![Travis Build Status](https://img.shields.io/travis/uqfoundation/klepto.svg?label=build&logo=travis&branch=master)](https://travis-ci.org/uqfoundation/klepto)
 [![codecov](https://codecov.io/gh/uqfoundation/klepto/branch/master/graph/badge.svg)](https://codecov.io/gh/uqfoundation/klepto)
+[![Downloads](https://pepy.tech/badge/klepto)](https://pepy.tech/project/klepto)
 -------------------
 You can get the latest development version with all the shiny new features at:
     https://github.com/uqfoundation
@@ -104,8 +103,8 @@ acknowledge use of ``klepto`` by citing the following in your publication::
 
     Michael McKerns and Michael Aivazis,
     "pathos: a framework for heterogeneous computing", 2010- ;
-    http://trac.mystic.cacr.caltech.edu/project/pathos
+    https://uqfoundation.github.io/pathos.html
 
-Please see http://trac.mystic.cacr.caltech.edu/project/pathos or
+Please see https://uqfoundation.github.io/pathos.html or
 http://arxiv.org/pdf/1202.1056 for further information.
 
