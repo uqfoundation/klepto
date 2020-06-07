@@ -82,7 +82,7 @@ processes. ``klepto`` enables a user to decorate a function, save the
 results to a file or database archive, close the interpreter,
 start a new session, and reload the function and it's cache.
 
-``klepto`` is part of ``pathos``, a python framework for heterogenous computing.
+``klepto`` is part of ``pathos``, a python framework for heterogeneous computing.
 ``klepto`` is in active development, so any user feedback, bug reports, comments,
 or suggestions are highly appreciated.  A list of issues is located at https://github.com/uqfoundation/klepto/issues, with a legacy list maintained at https://uqfoundation.github.io/pathos-issues.html.
 
