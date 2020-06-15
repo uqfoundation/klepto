@@ -4,3 +4,5 @@ include tox.ini
 include tests/*py
 recursive-include docs *
 include .*
+prune .git
+prune .coverage
