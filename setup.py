@@ -173,9 +173,9 @@ Requirements
 
 ``klepto`` requires:
 
-    - ``python``, **version >= 2.7** or **version >= 3.5**, or ``pypy``
+    - ``python``, **version == 2.7** or **version >= 3.5**, or ``pypy``
     - ``dill``, **version >= 0.3.1**
-    - ``pox``, **version >= 0.2.7**
+    - ``pox``, **version >= 0.2.8**
 
 Optional requirements:
 
