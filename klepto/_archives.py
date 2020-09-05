@@ -2091,6 +2091,7 @@ if hdf:
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
           filename = self.__state__['id']
+          f = None
           try:
               memo = {}
               f = hdf.File(filename, 'r')
@@ -2098,11 +2099,9 @@ if hdf:
               for k,v in getattr(f, 'iteritems', f.items)():
                   memo[self._loadkey(k.encode())] = self._loadval(v)
           except TypeError: # we have an unhashable type
-              f = None
               memo = {}
               'unhashable type'
           except: #XXX: should only catch appropriate exceptions
-              f = None
               memo = {}
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2114,6 +2113,7 @@ if hdf:
           filename = self.__state__['id']
           _filename = os.path.join(os.path.dirname(os.path.abspath(filename)), TEMP+hash(random(), 'md5')) if new else filename
           # create a temporary file, and dump the results
+          f = None
           try:
               f = hdf.File(_filename, 'w' if new else 'a')
               for k,v in getattr(memo, 'iteritems', memo.items)():
@@ -2123,7 +2123,6 @@ if hdf:
                   _f.pop(_k,None)
                   _f[_k] = self._dumpval(v)
           except OSError:
-              f = None
               "failed to populate file for %s" % str(filename)
           finally:
               if f is not None: f.close()
@@ -2150,11 +2149,11 @@ if hdf:
       __ne__.__doc__ = dict.__ne__.__doc__
       def __delitem__(self, key):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'a')
               self._attrs(f).__delitem__(self._dumpkey(key))
           except: #XXX: should only catch appropriate exceptions
-              f = None
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2163,11 +2162,11 @@ if hdf:
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'r')
               val = self._loadval(self._attrs(f)[self._dumpkey(key)])
           except: #XXX: should only catch appropriate exceptions
-              f = None
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2179,6 +2178,7 @@ if hdf:
       __repr__.__doc__ = dict.__repr__.__doc__
       def __setitem__(self, key, value):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'a')
              #self._attrs(f).update({self._dumpkey(key): self._dumpval(value)})
@@ -2187,7 +2187,6 @@ if hdf:
               _f.pop(_k,None)
               _f[_k] = self._dumpval(value)
           except KeyError: #XXX: should only catch appropriate exceptions
-              f = None
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2218,11 +2217,11 @@ if hdf:
           if sys.version_info[0] >= 3:
               return KeysView(self) #XXX: show keys not dict
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'r')
               _keys = [self._loadkey(key) for key in self._attrs(f).keys()]
           except: #XXX: should only catch appropriate exceptions
-              f = None
               raise OSError("error reading file archive %s" % filename)
           finally:
               if f is not None: f.close()
@@ -2232,11 +2231,11 @@ if hdf:
           if sys.version_info[0] >= 3:
               return ValuesView(self) #XXX: show values not dict
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'r')
               vals = [self._loadval(val) for val in self._attrs(f).values()]
           except: #XXX: should only catch appropriate exceptions
-              f = None
               raise OSError("error reading file archive %s" % filename)
           finally:
               if f is not None: f.close()
@@ -2244,11 +2243,11 @@ if hdf:
       values.__doc__ = dict.values.__doc__
       def __contains__(self, key):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'r')
               has_key = self._dumpkey(key) in self._attrs(f)
           except KeyError: #XXX: should only catch appropriate exceptions
-              f = None
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2300,11 +2299,11 @@ if hdf:
       def pop(self, key, *value):
           value = (self._dumpval(val) for val in value)
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'a')
               val = self._loadval(self._attrs(f).pop(self._dumpkey(key), *value))
           except KeyError: #XXX: should only catch appropriate exceptions
-              f = None
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2313,12 +2312,12 @@ if hdf:
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'a')
               key,val = self._attrs(f).popitem()
               key,val = self._loadkey(key),self._loadval(val)
           except KeyError: #XXX: should only catch appropriate exceptions
-              f = None
               d = {}
               d.popitem()
              #raise OSError("error reading file archive %s" % filename)
@@ -2340,11 +2339,11 @@ if hdf:
       update.__doc__ = dict.update.__doc__
       def __len__(self):
           filename = self.__state__['id']
+          f = None
           try:
               f = hdf.File(filename, 'r')
               _len = len(self._attrs(f))
           except: #XXX: should only catch appropriate exceptions
-              f = None
               raise OSError("error reading file archive %s" % filename)
           finally:
               if f is not None: f.close()
