@@ -175,7 +175,7 @@ Requirements
 
     - ``python``, **version == 2.7** or **version >= 3.5**, or ``pypy``
     - ``dill``, **version >= 0.3.2**
-    - ``pox``, **version >= 0.2.8**
+    - ``pox``, **version >= 0.2.9**
 
 Optional requirements:
 
@@ -266,7 +266,7 @@ setup(name='klepto',
 
 # add dependencies
 dill_version = '>=0.3.2'
-pox_version = '>=0.2.8'
+pox_version = '>=0.2.9'
 h5py_version = '>=2.8.0'
 sqlalchemy_version = '>=0.8.4'
 pandas_version = '>=0.17.0'
