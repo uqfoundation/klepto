@@ -267,7 +267,7 @@ setup(name='klepto',
 # add dependencies
 dill_version = '>=0.3.3'
 pox_version = '>=0.2.9'
-h5py_version = '>=2.8.0'
+h5py_version = '>=2.8.0, <3.0.0' #FIXME: see issue #88
 sqlalchemy_version = '>=0.8.4'
 pandas_version = '>=0.17.0'
 if has_setuptools:
