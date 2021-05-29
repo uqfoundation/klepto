@@ -84,7 +84,7 @@ start a new session, and reload the function and it's cache.
 
 ``klepto`` is part of ``pathos``, a python framework for heterogeneous computing.
 ``klepto`` is in active development, so any user feedback, bug reports, comments,
-or suggestions are highly appreciated.  A list of issues is located at https://github.com/uqfoundation/klepto/issues, with a legacy list maintained at https://uqfoundation.github.io/pathos-issues.html.
+or suggestions are highly appreciated.  A list of issues is located at https://github.com/uqfoundation/klepto/issues, with a legacy list maintained at https://uqfoundation.github.io/project/pathos/query.
 
 
 Major Features
@@ -209,9 +209,9 @@ acknowledge use of ``klepto`` by citing the following in your publication::
 
     Michael McKerns and Michael Aivazis,
     "pathos: a framework for heterogeneous computing", 2010- ;
-    https://uqfoundation.github.io/pathos.html
+    https://uqfoundation.github.io/project/pathos
 
-Please see https://uqfoundation.github.io/pathos.html or
+Please see https://uqfoundation.github.io/project/pathos or
 further information.
 
 """ % {'relver' : stable_version, 'thisver' : this_version}
