@@ -270,11 +270,19 @@ setup(name='klepto',
 """ % (target_version, long_description, stable_version, stable_version)
 
 # add dependencies
+sysversion = sys.version_info[:3]
 dill_version = '>=0.3.4'
 pox_version = '>=0.3.0'
-h5py_version = '>=2.8.0, <3.0.0' #FIXME: see issue #88
 sqlalchemy_version = '>=0.8.4'
-pandas_version = '>=0.17.0'
+h5py_version = '>=2.8.0, <3.0.0' #FIXME: see issue #88
+if sysversion < (3,5,3):
+    pandas_version = '>=0.17.0, <0.25.0'
+elif sysversion < (3,6,1):
+    pandas_version = '>=0.17.0, <1.0.0'
+elif sysversion < (3,7,1):
+    pandas_version = '>=0.17.0, <1.2.0'
+else:
+    pandas_version = '>=0.17.0'
 if has_setuptools:
     setup_code += """
       zip_safe=False,
