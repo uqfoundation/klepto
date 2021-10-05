@@ -64,6 +64,9 @@ Major Features
 
 
 Current Release
+[![Downloads](https://static.pepy.tech/personalized-badge/klepto?period=total&units=international_system&left_color=grey&right_color=blue&left_text=pypi%20downloads)](https://pepy.tech/project/klepto)
+[![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/klepto?color=blue&label=conda%20downloads)](https://anaconda.org/conda-forge/klepto)
+[![Stack Overflow](https://img.shields.io/badge/stackoverflow-get%20help-black.svg)](https://stackoverflow.com/questions/tagged/klepto)
 ---------------
 The latest released version of ``klepto`` is available from:
     https://pypi.org/project/klepto
@@ -72,10 +75,10 @@ The latest released version of ``klepto`` is available from:
 
 
 Development Version
+[![Support](https://img.shields.io/badge/support-the%20UQ%20Foundation-purple.svg?style=flat&colorA=grey&colorB=purple)](http://www.uqfoundation.org/pages/donate.html)
 [![Documentation Status](https://readthedocs.org/projects/klepto/badge/?version=latest)](https://klepto.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://travis-ci.com/uqfoundation/klepto.svg?label=build&logo=travis&branch=master)](https://travis-ci.com/uqfoundation/klepto)
 [![codecov](https://codecov.io/gh/uqfoundation/klepto/branch/master/graph/badge.svg)](https://codecov.io/gh/uqfoundation/klepto)
-[![Downloads](https://pepy.tech/badge/klepto)](https://pepy.tech/project/klepto)
 -------------------
 You can get the latest development version with all the shiny new features at:
     https://github.com/uqfoundation
