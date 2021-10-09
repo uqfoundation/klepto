@@ -95,7 +95,7 @@ def check_numpy(archive):
     d = archive
     x = np.array([1,2,3,4,5])
     y = np.arange(1000)
-    t = np.dtype([('int',np.int),('float32',np.float32)])
+    t = np.dtype([('int32',np.int32),('float32',np.float32)])
     d['a'] = x
     d['b'] = y
     d['c'] = np.inf
