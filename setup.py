@@ -184,7 +184,7 @@ Optional requirements:
     - ``sqlalchemy``, **version >= 0.8.4**
     - ``jsonpickle``, **version >= 0.9.6**
     - ``cloudpickle``, **version >= 0.5.2**
-    - ``setuptools``, **version >= 0.6**
+    - ``setuptools``, **version >= 40.6.0**
 
 
 More Information
