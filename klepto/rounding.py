@@ -147,7 +147,13 @@ class simple_round(object): #NOTE: only rounds floats, nothing else
 def shallow_round_factory(tol):
   """helper function for shallow_round (a factory for shallow_round functions)"""
   try:
-    from numpy import round as around
+    from numpy import round, VisibleDeprecationWarning
+    import warnings
+    def around(iterable, tol):
+      with warnings.catch_warnings():
+        warnings.simplefilter('ignore', VisibleDeprecationWarning)
+        iterable = round(iterable, tol)
+      return iterable
   except ImportError:
     from klepto.tools import isiterable
     def around(iterable, tol):
