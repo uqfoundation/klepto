@@ -61,12 +61,12 @@ class deep_round(object):
   8.0
   >>>
   >>> # rounds each float, regardless of depth in an object
-  >>> add([2.54, 5.47],['x','y'])
-  [2.5, 5.5, 'x', 'y']
+  >>> add([2.54, 'x'],[5.47, 'y'])
+  [2.5, 'x', 5.5, 'y']
   >>>
   >>> # rounds each float, regardless of depth in an object
-  >>> add([2.54, 5.47],['x',[8.99, 'y']])
-  [2.5, 5.5, 'x', [9.0, 'y']]
+  >>> add([2.54, 'x'],[5.47, [8.99, 'y']])
+  [2.5, 'x', 5.5, [9.0, 'y']]
   """
   def __init__(self, tol=0):
     self.__round__ = deep_round_factory(tol)
@@ -117,12 +117,12 @@ class simple_round(object): #NOTE: only rounds floats, nothing else
   8.0
   >>>
   >>> # does not round elements of iterables, only rounds at the top-level
-  >>> add([2.54, 5.47],['x','y'])
-  [2.54, 5.4699999999999998, 'x', 'y']
+  >>> add([2.54, 'x'],[5.47, 'y'])
+  [2.54, 'x', 5.4699999999999998, 'y']
   >>>
   >>> # does not round elements of iterables, only rounds at the top-level
-  >>> add([2.54, 5.47],['x',[8.99, 'y']])
-  [2.54, 5.4699999999999998, 'x', [8.9900000000000002, 'y']]
+  >>> add([2.54, 'x'],[5.47, [8.99, 'y']])
+  [2.54, 'x', 5.4699999999999998, [8.9900000000000002, 'y']]
   """
   def __init__(self, tol=0):
     self.__round__ = simple_round_factory(tol)
@@ -146,21 +146,15 @@ class simple_round(object): #NOTE: only rounds floats, nothing else
 
 def shallow_round_factory(tol):
   """helper function for shallow_round (a factory for shallow_round functions)"""
-  try:
-    from numpy import round as around
-    #from numpy import round, VisibleDeprecationWarning
-    #import warnings
-    #def around(iterable, tol):
-    #  with warnings.catch_warnings():
-    #    warnings.simplefilter('ignore', VisibleDeprecationWarning)
-    #    iterable = round(iterable, tol)
-    #  return iterable
-  except ImportError:
+  def around(iterable, tol):
+    if isinstance(iterable, float): return round(iterable, tol)
     from klepto.tools import isiterable
-    def around(iterable, tol):
-      if not isiterable(iterable): return round(iterable, tol)
-      itype = type(iterable)
-      return itype( round(i, tol) for i in iterable )
+    if not isiterable(iterable): return iterable
+    itype = type(iterable)
+    _iterable = list(iterable)
+    for i,j in enumerate(iterable):
+      if isinstance(j, float): _iterable[i] = round(j, tol)
+    return itype(_iterable)
   def shallow_round(*args, **kwds):
     argstype = type(args) 
     _args = list(args)
@@ -195,12 +189,12 @@ class shallow_round(object): #NOTE: rounds floats, lists, arrays one level deep
   8.0
   >>>
   >>> # rounds each float, at the top-level or first-level of each object.
-  >>> add([2.54, 5.47],['x','y'])
-  [2.5, 5.5, 'x', 'y']
+  >>> add([2.54, 'x'],[5.47, 'y'])
+  [2.5, 'x', 5.5, 'y']
   >>>
   >>> # rounds each float, at the top-level or first-level of each object.
-  >>> add([2.54, 5.47],['x',[8.99, 'y']])
-  [2.5, 5.5, 'x', [8.9900000000000002, 'y']]
+  >>> add([2.54, 'x'],[5.47, [8.99, 'y']])
+  [2.5, 'x', 5.5, [8.9900000000000002, 'y']]
   """
   def __init__(self, tol=0):
     self.__round__ = shallow_round_factory(tol)

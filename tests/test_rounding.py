@@ -17,12 +17,12 @@ def test_deep_round():
     assert result == 8.0
 
     # rounds each float, regardless of depth in an object
-    result = add([2.54, 5.47],['x','y'])
-    assert result == [2.5, 5.5, 'x', 'y']
+    result = add([2.54, 'x'],[5.47, 'y'])
+    assert result == [2.5, 'x', 5.5, 'y']
 
     # rounds each float, regardless of depth in an object
-    result = add([2.54, 5.47],['x',[8.99, 'y']])
-    assert result == [2.5, 5.5, 'x', [9.0, 'y']]
+    result = add([2.54, 'x'],[5.47, [8.99, 'y']])
+    assert result == [2.5, 'x', 5.5, [9.0, 'y']]
 
 def test_simple_round():
     @simple_round(tol=1)
@@ -33,12 +33,12 @@ def test_simple_round():
     assert result == 8.0
 
     # does not round elements of iterables, only rounds at the top-level
-    result = add([2.54, 5.47],['x','y'])
-    assert result == [2.54, 5.4699999999999998, 'x', 'y']
+    result = add([2.54, 'x'],[5.47, 'y'])
+    assert result == [2.54, 'x', 5.4699999999999998, 'y']
 
     # does not round elements of iterables, only rounds at the top-level
-    result = add([2.54, 5.47],['x',[8.99, 'y']])
-    assert result == [2.54, 5.4699999999999998, 'x', [8.9900000000000002, 'y']]
+    result = add([2.54, 'x'],[5.47, [8.99, 'y']])
+    assert result == [2.54, 'x', 5.4699999999999998, [8.9900000000000002, 'y']]
 
 def test_shallow_round():
     @shallow_round(tol=1)
@@ -49,12 +49,12 @@ def test_shallow_round():
     assert result == 8.0
 
     # rounds each float, at the top-level or first-level of each object.
-    result = add([2.54, 5.47],['x','y'])
-    assert result == [2.5, 5.5, 'x', 'y']
+    result = add([2.54, 'x'],[5.47, 'y'])
+    assert result == [2.5, 'x', 5.5, 'y']
 
     # rounds each float, at the top-level or first-level of each object.
-    result = add([2.54, 5.47],['x',[8.99, 'y']])
-    assert result == [2.5, 5.5, 'x', [8.9900000000000002, 'y']]
+    result = add([2.54, 'x'],[5.47, [8.99, 'y']])
+    assert result == [2.5, 'x', 5.5, [8.9900000000000002, 'y']]
 
 
 # rounding integrated with key generation
