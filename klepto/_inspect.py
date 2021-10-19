@@ -92,8 +92,9 @@ def signature(func, variadic=True, markup=True, safe=False):
         p_args = ()
         p_kwds = {}
 
+    FULL_ARGS = hasattr(inspect, 'getfullargspec')
     try:
-        arg_spec = inspect.getargspec(func)
+        arg_spec = getattr(inspect, 'getfullargspec', inspect.getargspec)(func)
     except TypeError:
         if safe: return LONG_FAIL if variadic else TINY_FAIL
         raise TypeError('%r is not a Python function' % func)
@@ -101,10 +102,16 @@ def signature(func, variadic=True, markup=True, safe=False):
     if hasattr(arg_spec, 'args'):
         arg_names = arg_spec.args         # list of input variable names
         arg_defaults = arg_spec.defaults  # list of kwd default values
-        arg_keywords = arg_spec.keywords  # name of **kwds
         arg_varargs = arg_spec.varargs    # name of *args
+        if FULL_ARGS:                     # name of **kwds
+            arg_keywords = getattr(arg_spec, 'varkw') or {}
+            arg_kwdefault = getattr(arg_spec, 'kwonlydefaults') or {}
+        else:
+            arg_keywords = arg_spec.keywords
+            arg_kwdefault = {}
     else:
         arg_names, arg_varargs, arg_keywords, arg_defaults = arg_spec
+        arg_kwdefault = {}
 
     if not arg_defaults or not arg_names:
         defaults = {}
@@ -124,6 +131,8 @@ def signature(func, variadic=True, markup=True, safe=False):
         raise TypeError("%s() got multiple values for keyword argument '%s'" % (func.__name__,errors[0]))
         # the above could fail if taking a partial of a partial
 
+    # include any keyword-only defaults
+    defaults.update(arg_kwdefault)
     # for a partial, arguments given in p_kwds have new defaults
     defaults.update(p_kwds)
     if markup: X = '!'
