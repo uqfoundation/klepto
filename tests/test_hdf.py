@@ -69,12 +69,17 @@ def test_combinations():
       hdf_archive('memo.h5',init,serialized=False,meta=False),
       hdf_archive('xxxx.hdf5',init,serialized=True,meta=True),
       hdf_archive('xxxx.h5',init,serialized=False,meta=True),
-#     hdfdir_archive('memoq',init,serialized=False,meta=False),
+      hdfdir_archive('memoq',init,serialized=False,meta=False),
       hdfdir_archive('memor',init,serialized=True,meta=False),
-#     hdfdir_archive('memos',init,serialized=False,meta=True),
+      hdfdir_archive('memos',init,serialized=False,meta=True),
       hdfdir_archive('memot',init,serialized=True,meta=True),
-      #FIXME: hdfdir_archive fails with serialized=False in python 3.x
     ]
+    if tuple(int(i) for i in h5py.__version__.split('.',2)) < (3,0,0):
+      #FIXME: hdfdir_archive fails with serialized=False in python 3.x
+      archives = archives[:4] + archives[5::2]
+    else:
+      #FIXME: hdf*_archive fails with serialized=True meta=False (issue #88)
+      archives = archives[1:5] + archives[6:]
     maps = [
       None,
       keymap(typed=False, flat=True, sentinel=NOSENTINEL),

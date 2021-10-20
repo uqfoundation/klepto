@@ -56,7 +56,7 @@ before_install:
     - if [[ $COVERAGE == "true" ]]; then pip install coverage; fi
     - if [[ $PANDAS == "true" ]]; then pip install pandas; fi
     - if [[ $SQLALCHEMY == "true" ]]; then pip install sqlalchemy; fi
-    - if [[ $H5PY == "true" ]]; then pip install 'h5py<3.0.0'; fi
+    - if [[ $H5PY == "true" ]]; then pip install h5py; fi
 
 install:
     - python setup.py build && python setup.py install
