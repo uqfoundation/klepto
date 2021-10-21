@@ -36,7 +36,7 @@ try:
   imp.find_module('h5py')
   hdf = True
   def __import_hdf__():
-      global hdf
+      global hdf, np
       import h5py as hdf
 except ImportError:
   hdf = None
@@ -2071,8 +2071,8 @@ if hdf:
           'convert from a value stored in the HDF file'
           pik = json if type(self.__state__['protocol']) is str else dill
           if self.__state__['meta']:
-              return pik.loads(value) if self.__state__['serialized'] else value
-          return pik.loads(value[0]) if self.__state__['serialized'] else value[()] #XXX: correct for arrays?
+              return pik.loads(value.tobytes()) if self.__state__['serialized'] else value
+          return pik.loads(value[0].tobytes()) if self.__state__['serialized'] else value[()] #XXX: correct for arrays?
       def _dumpkey(self, key): # lookup a key in the archive
           'convert to a key stored in the HDF file'
           if type(self.__state__['protocol']) is str:
@@ -2084,8 +2084,9 @@ if hdf:
               protocol = self.__state__['protocol'] #XXX: fix at 0?
               if type(protocol) is str:
                   value = json.dumps(value).encode()
-              else:
-                  value = dill.dumps(value, protocol=protocol)
+              else: #XXX: don't use void for protocol = 0?
+                  void = hdf.version.numpy.void #XXX: better import numpy?
+                  value = void(dill.dumps(value, protocol=protocol))
               return value if self.__state__['meta'] else [value]
           return value #XXX: or [value]? (so no scalars)
       def __asdict__(self):

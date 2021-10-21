@@ -77,9 +77,6 @@ def test_combinations():
     if tuple(int(i) for i in h5py.__version__.split('.',2)) < (3,0,0):
       #FIXME: hdfdir_archive fails with serialized=False in python 3.x
       archives = archives[:4] + archives[5::2]
-    else:
-      #FIXME: hdf*_archive fails with serialized=True meta=False (issue #88)
-      archives = archives[1:5] + archives[6:]
     maps = [
       None,
       keymap(typed=False, flat=True, sentinel=NOSENTINEL),
