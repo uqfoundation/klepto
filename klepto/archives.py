@@ -8,7 +8,7 @@
 """
 custom caching dict, which archives results to memory, file, or database
 """
-from ._archives import cache
+from ._archives import cache, archive
 from ._archives import dict_archive as _dict_archive
 from ._archives import null_archive as _null_archive
 from ._archives import dir_archive as _dir_archive

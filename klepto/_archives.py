@@ -52,6 +52,7 @@ import json
 import dill
 from dill.source import getimportable
 from pox import mkdir, rmtree, walk
+from ._abc import archive
 from .crypto import hash
 from . import _pickle
 
@@ -234,7 +235,7 @@ class cache(dict):
     pass
 
 
-class dict_archive(dict):
+class dict_archive(archive):
     """dictionary with an archive interface"""
     def __init__(self, *args, **kwds):
         """initialize a dictionary archive"""
@@ -258,40 +259,10 @@ class dict_archive(dict):
         adict.update(self.__asdict__())
         return adict
     # interface
-    def load(self, *args):
-        """does nothing. required to use an archive as a cache"""
-        return
-    dump = load
-    def archived(self, *on):
-        """check if the cache is a persistent archive"""
-        L = len(on)
-        if not L: return False
-        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-        raise ValueError("cannot toggle archive")
-    def sync(self, clear=False):
-        "does nothing. required to use an archive as a cache"
-        pass
-    def drop(self): #XXX: or actually drop the backend?
-        "set the current archive to NULL"
-        return self.__archive(None)
-    def open(self, archive):
-        "replace the current archive with the archive provided"
-        return self.__archive(archive)
-    def __get_archive(self):
-        return self
-    def __get_name(self):
-        return self.__state__['id']
-    def __get_state(self):
-        return self.__state__.copy()
-    def __archive(self, archive):
-        raise ValueError("cannot set new archive")
-    archive = property(__get_archive, __archive)
-    name = property(__get_name, __archive)
-    state = property(__get_state, __archive)
     pass
 
 
-class null_archive(dict):
+class null_archive(archive):
     """dictionary interface to nothing -- it's always empty"""
     def __init__(self, *args, **kwds):
         """initialize a permanently-empty dictionary"""
@@ -322,40 +293,10 @@ class null_archive(dict):
             name = self.__state__['id']
         return null_archive(__magic_key_0192837465__=name)
     # interface
-    def load(self, *args):
-        """does nothing. required to use an archive as a cache"""
-        return
-    dump = load
-    def archived(self, *on):
-        """check if the cache is a persistent archive"""
-        L = len(on)
-        if not L: return False
-        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-        raise ValueError("cannot toggle archive")
-    def sync(self, clear=False):
-        "does nothing. required to use an archive as a cache"
-        pass
-    def drop(self): #XXX: or actually drop the backend?
-        "set the current archive to NULL"
-        return self.__archive(None)
-    def open(self, archive):
-        "replace the current archive with the archive provided"
-        return self.__archive(archive)
-    def __get_archive(self):
-        return self
-    def __get_name(self):
-        return self.__state__['id']
-    def __get_state(self):
-        return self.__state__.copy()
-    def __archive(self, archive):
-        raise ValueError("cannot set new archive")
-    archive = property(__get_archive, __archive)
-    name = property(__get_name, __archive)
-    state = property(__get_state, __archive)
     pass
 
 
-class dir_archive(dict):
+class dir_archive(archive):
     """dictionary-style interface to a folder of files"""
     def __init__(self, dirname=None, serialized=True, compression=0, permissions=None, **kwds):
         """initialize a file folder with a synchronized dictionary interface
@@ -734,42 +675,17 @@ class dir_archive(dict):
         raise NotImplementedError("cannot set attribute '_file'")
 
     # interface
-    def load(self, *args):
-        """does nothing. required to use an archive as a cache"""
-        return
-    dump = load
-    def archived(self, *on):
-        """check if the cache is a persistent archive"""
-        L = len(on)
-        if not L: return True
-        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-        raise ValueError("cannot toggle archive")
-    def sync(self, clear=False):
-        "does nothing. required to use an archive as a cache"
-        pass
-    def drop(self): #XXX: or actually drop the backend?
-        "set the current archive to NULL"
-        return self.__archive(None)
-    def open(self, archive):
-        "replace the current archive with the archive provided"
-        return self.__archive(archive)
-    def __get_archive(self):
-        return self
     def __get_name(self):
         return os.path.basename(self.__state__['id'])
-    def __get_state(self):
-        return self.__state__.copy()
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
-    archive = property(__get_archive, __archive)
     name = property(__get_name, __archive)
     _file = property(_get_file, _set_file)
     _args = property(_get_args, _set_file)
-    state = property(__get_state, __archive)
     pass
 
 
-class file_archive(dict):
+class file_archive(archive):
     """dictionary-style interface to a file"""
     def __init__(self, filename=None, serialized=True, **kwds): # False
         """initialize a file with a synchronized dictionary interface
@@ -995,36 +911,11 @@ class file_archive(dict):
     def __len__(self):
         return len(self.__asdict__())
     # interface
-    def load(self, *args):
-        """does nothing. required to use an archive as a cache"""
-        return
-    dump = load
-    def archived(self, *on):
-        """check if the cache is a persistent archive"""
-        L = len(on)
-        if not L: return True
-        if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-        raise ValueError("cannot toggle archive")
-    def sync(self, clear=False):
-        "does nothing. required to use an archive as a cache"
-        pass
-    def drop(self): #XXX: or actually drop the backend?
-        "set the current archive to NULL"
-        return self.__archive(None)
-    def open(self, archive):
-        "replace the current archive with the archive provided"
-        return self.__archive(archive)
-    def __get_archive(self):
-        return self
     def __get_name(self):
         return os.path.basename(self.__state__['id'])
-    def __get_state(self):
-        return self.__state__.copy()
     def __archive(self, archive):
         raise ValueError("cannot set new archive")
-    archive = property(__get_archive, __archive)
     name = property(__get_name, __archive)
-    state = property(__get_state, __archive)
     pass
 
 
@@ -1048,7 +939,7 @@ if sql:
   #       however, '\x80' and u'\x80' and b'\x80' are not valid (also not 80)
   #       NOTE: if sql == False: 80, u'\x80', and b'\\x80' are also VALID
 
-  class sql_archive(dict):
+  class sql_archive(archive):
       """dictionary-style interface to a sql database"""
       def __init__(self, database=None, **kwds):
           """initialize a sql database with a synchronized dictionary interface
@@ -1357,41 +1248,16 @@ if sql:
           table = self._gettable(key)
           return table.c[self._key]
       # interface
-      def load(self, *args):
-          """does nothing. required to use an archive as a cache"""
-          return
-      dump = load
-      def archived(self, *on):
-          """check if the cache is a persistent archive"""
-          L = len(on)
-          if not L: return True
-          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-          raise ValueError("cannot toggle archive")
-      def sync(self, clear=False):
-          "does nothing. required to use an archive as a cache"
-          pass
-      def drop(self): #XXX: or actually drop the backend?
-          "set the current archive to NULL"
-          return self.__archive(None)
-      def open(self, archive):
-          "replace the current archive with the archive provided"
-          return self.__archive(archive)
-      def __get_archive(self):
-          return self
-      def __get_name(self):
-          return self.__state__['id']
       def __get_state(self):
           state = self.__state__.copy() 
           state.update(state.pop('config',{}))
           return state
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
-      archive = property(__get_archive, __archive)
-      name = property(__get_name, __archive)
       state = property(__get_state, __archive)
       pass
 
-  class sqltable_archive(dict):
+  class sqltable_archive(archive):
       """dictionary-style interface to a sql database table"""
       def __init__(self, database=None, table=None, **kwds):
           """initialize a sql database with a synchronized dictionary interface
@@ -1711,27 +1577,6 @@ if sql:
           return #XXX: should do the above all at once, and more efficiently
       update.__doc__ = dict.update.__doc__
       # interface
-      def load(self, *args):
-          """does nothing. required to use an archive as a cache"""
-          return
-      dump = load
-      def archived(self, *on):
-          """check if the cache is a persistent archive"""
-          L = len(on)
-          if not L: return True
-          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-          raise ValueError("cannot toggle archive")
-      def sync(self, clear=False):
-          "does nothing. required to use an archive as a cache"
-          pass
-      def drop(self): #XXX: or actually drop the backend?
-          "set the current archive to NULL"
-          return self.__archive(None)
-      def open(self, archive):
-          "replace the current archive with the archive provided"
-          return self.__archive(archive)
-      def __get_archive(self):
-          return self
       def __get_name(self):
           return "%s?table=%s" % (self.__state__['root'], self.__state__['id'])
       def __get_state(self):
@@ -1742,12 +1587,11 @@ if sql:
           return state
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
-      archive = property(__get_archive, __archive)
       name = property(__get_name, __archive)
       state = property(__get_state, __archive)
       pass
 else:
-  class sqltable_archive(dict): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
+  class sqltable_archive(archive): #XXX: requires UTF-8 key; #FIXME: use sqlite3.dbapi2
       """dictionary-style interface to a sql database table"""
       def __init__(self, database=None, table=None, **kwds): #serialized
           """initialize a sql database with a synchronized dictionary interface
@@ -1992,27 +1836,6 @@ else:
           sql = "select * from %s where argstr = ?" % self.__state__['id']
           return tuple(self._engine.execute(sql, (key,)))
       # interface
-      def load(self, *args):
-          """does nothing. required to use an archive as a cache"""
-          return
-      dump = load
-      def archived(self, *on):
-          """check if the cache is a persistent archive"""
-          L = len(on)
-          if not L: return True
-          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-          raise ValueError("cannot toggle archive")
-      def sync(self, clear=False):
-          "does nothing. required to use an archive as a cache"
-          pass
-      def drop(self): #XXX: or actually drop the backend?
-          "set the current archive to NULL"
-          return self.__archive(None)
-      def open(self, archive):
-          "replace the current archive with the archive provided"
-          return self.__archive(archive)
-      def __get_archive(self):
-          return self
       def __get_name(self):
           return "%s?table=%s" % (self.__state__['root'], self.__state__['id'])
       def __get_state(self):
@@ -2021,7 +1844,6 @@ else:
           return state
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
-      archive = property(__get_archive, __archive)
       name = property(__get_name, __archive)
       state = property(__get_state, __archive)
       pass
@@ -2029,7 +1851,7 @@ else:
 
 
 if hdf:
-  class hdf_archive(dict):
+  class hdf_archive(archive):
       """dictionary-style interface to a hdf5 file"""
       def __init__(self, filename=None, serialized=True, **kwds):
           """initialize a hdf5 file with a synchronized dictionary interface
@@ -2350,39 +2172,14 @@ if hdf:
               if f is not None: f.close()
           return _len
       # interface
-      def load(self, *args):
-          """does nothing. required to use an archive as a cache"""
-          return
-      dump = load
-      def archived(self, *on):
-          """check if the cache is a persistent archive"""
-          L = len(on)
-          if not L: return True
-          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-          raise ValueError("cannot toggle archive")
-      def sync(self, clear=False):
-          "does nothing. required to use an archive as a cache"
-          pass
-      def drop(self): #XXX: or actually drop the backend?
-          "set the current archive to NULL"
-          return self.__archive(None)
-      def open(self, archive):
-          "replace the current archive with the archive provided"
-          return self.__archive(archive)
-      def __get_archive(self):
-          return self
       def __get_name(self):
           return os.path.basename(self.__state__['id'])
-      def __get_state(self):
-          return self.__state__.copy()
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
-      archive = property(__get_archive, __archive)
       name = property(__get_name, __archive)
-      state = property(__get_state, __archive)
       pass
 
-  class hdfdir_archive(dict):
+  class hdfdir_archive(archive):
       """dictionary-style interface to a folder of hdf5 files"""
       def __init__(self, dirname=None, serialized=True, **kwds):
           """initialize a hdf5 file with a synchronized dictionary interface
@@ -2675,47 +2472,22 @@ if hdf:
       def _set_file(self, file):
           raise NotImplementedError("cannot set attribute '_file'")
       # interface
-      def load(self, *args):
-          """does nothing. required to use an archive as a cache"""
-          return
-      dump = load
-      def archived(self, *on):
-          """check if the cache is a persistent archive"""
-          L = len(on)
-          if not L: return True
-          if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
-          raise ValueError("cannot toggle archive")
-      def sync(self, clear=False):
-          "does nothing. required to use an archive as a cache"
-          pass
-      def drop(self): #XXX: or actually drop the backend?
-          "set the current archive to NULL"
-          return self.__archive(None)
-      def open(self, archive):
-          "replace the current archive with the archive provided"
-          return self.__archive(archive)
-      def __get_archive(self):
-          return self
       def __get_name(self):
           return os.path.basename(self.__state__['id'])
-      def __get_state(self):
-          return self.__state__.copy()
       def __archive(self, archive):
           raise ValueError("cannot set new archive")
-      archive = property(__get_archive, __archive)
       name = property(__get_name, __archive)
       _file = property(_get_file, _set_file)
       _args = property(_get_args, _set_file)
-      state = property(__get_state, __archive)
       pass
 
 else:
-  class hdf_archive(dict):
+  class hdf_archive(archive):
       """dictionary-style interface to a hdf5 file"""
       def __init__(self, *args, **kwds):
           import h5py
       pass
-  class hdfdir_archive(dict):
+  class hdfdir_archive(archive):
       """dictionary-style interface to a folder of hdf5 files"""
       def __init__(self, *args, **kwds):
           import h5py
