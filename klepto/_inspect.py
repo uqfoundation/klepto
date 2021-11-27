@@ -94,7 +94,8 @@ def signature(func, variadic=True, markup=True, safe=False):
 
     FULL_ARGS = hasattr(inspect, 'getfullargspec')
     try:
-        arg_spec = getattr(inspect, 'getfullargspec', inspect.getargspec)(func)
+        if FULL_ARGS: arg_spec = inspect.getfullargspec(func)
+        else: arg_spec = inspect.getargspec(func)
     except TypeError:
         if safe: return LONG_FAIL if variadic else TINY_FAIL
         raise TypeError('%r is not a Python function' % func)
