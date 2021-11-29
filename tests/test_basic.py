@@ -9,7 +9,7 @@
 from klepto.safe import lru_cache as memoized
 from random import choice, seed
 
-N = 100
+N = 60
 
 def _test_cache(cache, keymap=None, maxsize=50, rangelimit=10, tries=N):
 
