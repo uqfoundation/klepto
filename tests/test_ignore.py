@@ -175,7 +175,11 @@ def test_special():
 
     
     if IS_PYPY: # builtins in PYPY are python functions
-        assert signature(pow, safe=True) == (('base', 'exponent', 'modulus'), {'modulus': None}, '', '')
+        if hex(sys.hexversion) < '0x3080cf0':
+            base, exp, mod = 'base', 'exponent', 'modulus'
+        else:
+            base, exp, mod = 'base', 'exp', 'mod'
+        assert signature(pow, safe=True) == ((base, exp, mod), {mod: None}, '', '')
     else:
         assert signature(pow, safe=True) == (None, None, None, None)
     assert signature(p, safe=True) == (None, None, None, None)
