@@ -26,7 +26,7 @@ matrix:
 
         - python: '3.11-dev'
           env:
-            - DILL="true"
+            - DILL="master"
 
         - python: 'pypy2.7-7.3.1' # most recent
           dist: xenial
@@ -51,7 +51,7 @@ before_install:
     - if [[ $PANDAS == "true" ]]; then pip install pandas; fi
     - if [[ $SQLALCHEMY == "true" ]]; then pip install sqlalchemy; fi
     - if [[ $H5PY == "true" ]]; then pip install h5py; fi
-    - if [[ $DILL == "true" ]]; then pip install "https://github.com/uqfoundation/dill/archive/master.tar.gz"; fi
+    - if [[ $DILL == "master" ]]; then pip install "https://github.com/uqfoundation/dill/archive/master.tar.gz"; fi
 
 install:
     - python setup.py build && python setup.py install
