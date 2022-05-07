@@ -96,7 +96,7 @@ To include optional archive backends, such as HDF5 and SQL, in the install::
 
     $ pip install klepto[archives]
 
-To include optional serializers, such as jsonpickle, in the install::
+To include optional serializers, such as ``jsonpickle``, in the install::
 
     $ pip install klepto[crypto]
 
