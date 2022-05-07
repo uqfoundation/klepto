@@ -86,6 +86,40 @@ You can get the latest development version with all the shiny new features at:
 If you have a new contribution, please submit a pull request.
 
 
+Installation
+------------
+``klepto`` can be installed with ``pip``::
+
+    $ pip install klepto
+
+To include optional archive backends, such as HDF5 and SQL, in the install::
+
+    $ pip install klepto[archives]
+
+To include optional serializers, such as jsonpickle, in the install::
+
+    $ pip install klepto[crypto]
+
+
+Requirements
+------------
+``klepto`` requires:
+
+* ``python`` (or ``pypy``), **==2.7** or **>=3.7**
+* ``setuptools``, **>=42**
+* ``wheel``, **>=0.1**
+* ``dill``, **>=0.3.4**
+* ``pox``, **>=0.3.0**
+
+Optional requirements:
+
+* ``h5py``, **>=2.8.0**
+* ``pandas``, **>=0.17.0**
+* ``sqlalchemy``, **>=0.8.4**
+* ``jsonpickle``, **>=0.9.6**
+* ``cloudpickle``, **>=0.5.2**
+
+
 More Information
 ----------------
 Probably the best way to get started is to look at the documentation at
