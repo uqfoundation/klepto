@@ -1,5 +1,5 @@
 include LICENSE
-include README
+include README*
 include MANIFEST.in
 include pyproject.toml
 include tox.ini
