@@ -1,6 +1,7 @@
 [run]
 # source = klepto
-include = */klepto/*
+include =
+    */klepto/*
 omit = 
     */tests/*
     */info.py
@@ -11,7 +12,14 @@ branch = true
 # data_file = $TRAVIS_BUILD_DIR/.coverage
 # debug = trace
 
+[paths]
+source =
+    klepto
+    */site-packages/klepto*/klepto
+
 [report]
+include =
+    */klepto/*
 exclude_lines =
     pragma: no cover
     raise NotImplementedError
