@@ -15,7 +15,8 @@ branch = true
 [paths]
 source =
     klepto
-    */site-packages/klepto*/klepto
+    */site-packages/klepto
+    */site-packages/klepto-*/klepto
 
 [report]
 include =
