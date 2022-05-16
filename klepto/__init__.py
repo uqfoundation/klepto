@@ -201,20 +201,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 """
 
-try:
-    # This is a hack to import a minimal package for the build process
-    __KLEPTO_SETUP__
-except NameError:
-    from ._cache import no_cache, inf_cache, lfu_cache, \
-                        lru_cache, mru_cache, rr_cache
-    from ._inspect import signature, isvalid, validate, \
-                          keygen, strip_markup, NULL, _keygen
-    from . import rounding
-    from . import safe
-    from . import archives
-    from . import keymaps
-    from . import tools
-    from . import crypto
+from ._cache import no_cache, inf_cache, lfu_cache, \
+                    lru_cache, mru_cache, rr_cache
+from ._inspect import signature, isvalid, validate, \
+                      keygen, strip_markup, NULL, _keygen
+from . import rounding
+from . import safe
+from . import archives
+from . import keymaps
+from . import tools
+from . import crypto
 
 
 def license():
