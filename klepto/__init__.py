@@ -123,7 +123,7 @@ Requirements
     - ``setuptools``, **>=42**
     - ``wheel``, **>=0.1**
     - ``dill``, **>=0.3.4**
-    - ``pox``, **>=0.3.0**
+    - ``pox``, **>=0.3.1**
 
 Optional requirements:
 
