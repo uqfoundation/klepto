@@ -115,7 +115,7 @@ class BinaryDistribution(Distribution):
 
 # define dependencies
 sysversion = sys.version_info[:3]
-dill_version = 'dill>=0.3.4'
+dill_version = 'dill>=0.3.5'
 pox_version = 'pox>=0.3.1'
 jsonpickle_version = 'jsonpickle>=0.9.6'
 cloudpickle_version = 'cloudpickle>=0.5.2'
