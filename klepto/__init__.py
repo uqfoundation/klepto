@@ -7,7 +7,7 @@
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
 # author, version, license, and long description
-__version__ = '0.2.2'
+__version__ = '0.2.3.dev0'
 __author__ = 'Mike McKerns'
 
 __doc__ = """
