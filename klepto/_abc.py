@@ -17,7 +17,7 @@ class archive(dict):
         #return
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
-        return dict(getattr(self,'iteritems',self.items)())
+        return dict(self.items())
     def __repr__(self):
         return "%s(%s, cached=False)" % (self.__class__.__name__, self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__

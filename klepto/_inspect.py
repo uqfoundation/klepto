@@ -146,7 +146,7 @@ def signature(func, variadic=True, markup=True, safe=False):
         defaults = dict((k,v) for (k,v) in defaults.items() if k not in _fixed)
         defaults.update(dict((X+k,v) for (k,v) in _fixed.items()))
 
-    if inspect.ismethod(func) and getattr(func, 'im_self', func.__self__):
+    if inspect.ismethod(func) and func.__self__:
         # then it's a bound method
         explicit = explicit[1:] #XXX: correct to remove 'self' ?
 
@@ -423,8 +423,7 @@ def _keygen(func, ignored, *args, **kwds):
     if inspect.isfunction(func):
         try: # this is a pretty good filter that: user_args[0] is self
             _bound = getattr(user_args[0], func.__name__)
-            _self = getattr(_bound, 'im_self', None)
-            if _self is None: _self = getattr(_bound, '__self__')
+            _self = getattr(_bound, '__self__')
             assert _self == user_args[0]
         except:
             _bound = None

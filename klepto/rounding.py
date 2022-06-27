@@ -11,9 +11,7 @@ decorators that provide rounding
 
 __all__ = ['deep_round', 'shallow_round', 'simple_round']
 #FIXME: these seem *slow*... and a bit convoluted.  Maybe rewrite as classes?
-import sys
-if (hex(sys.hexversion) >= '0x30000f0'):
-  unicode = str #PYTHON3
+unicode = str #PYTHON3
 
 def deep_round_factory(tol):
   """helper function for deep_round (a factory for deep_round functions)"""

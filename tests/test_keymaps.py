@@ -8,8 +8,6 @@
 
 from klepto.keymaps import *
 from dill import dumps, loads
-import sys
-is342 = sys.version_info[:3] == (3,4,2)
 
 args = (1,2); kwds = {"a":3, "b":4}
 
@@ -36,16 +34,14 @@ def test_hashmap():
 def test_stringmap():
     encode = stringmap(typed=False, flat=True, sentinel=NOSENTINEL)
     assert encode(*args, **kwds) == "(1, 2, 'a', 3, 'b', 4)"
-    if not is342:
-        encode = stringmap(typed=False, flat=False, sentinel=NOSENTINEL)
-        assert eval(encode(*args, **kwds)) == (args, kwds)
-        #res = encode(*args, **kwds)
-        #assert res in ("({}, {})".format(str(args),_kwds), "({}, {})".format(str(args),kwds_))
+    encode = stringmap(typed=False, flat=False, sentinel=NOSENTINEL)
+    assert eval(encode(*args, **kwds)) == (args, kwds)
+    #res = encode(*args, **kwds)
+    #assert res in ("({}, {})".format(str(args),_kwds), "({}, {})".format(str(args),kwds_))
     encode = stringmap(typed=True, flat=True, sentinel=NOSENTINEL)
     assert encode(*args, **kwds) == str( (1, 2, 'a', 3, 'b', 4, type(1), type(2), type(3), type(4)) )
-    if not is342:
-        encode = stringmap(typed=True, flat=False, sentinel=NOSENTINEL)
-        assert eval(encode(*args, **kwds).replace(str((type(1), type(2))), "''")) == (args, kwds, '', '')
+    encode = stringmap(typed=True, flat=False, sentinel=NOSENTINEL)
+    assert eval(encode(*args, **kwds).replace(str((type(1), type(2))), "''")) == (args, kwds, '', '')
 
 def test_picklemap():
     encode = picklemap(typed=False, flat=True, serializer='dill')

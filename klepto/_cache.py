@@ -704,10 +704,7 @@ class lru_cache(object):
 
     def __call__(self, user_function):
         from collections import deque
-        try:
-            from itertools import filterfalse
-        except ImportError:
-            from itertools import ifilterfalse as filterfalse
+        from itertools import filterfalse
        #cache = dict()                  # mapping of args to results
         queue = deque()                 # order that keys have been used
         refcount = Counter()            # times each key is in the queue

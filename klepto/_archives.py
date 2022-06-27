@@ -13,16 +13,7 @@ import sys
 import shutil
 from random import random
 from pickle import PROTO, STOP
-try:
-  from collections.abc import KeysView, ValuesView, ItemsView
-  _view = False
-except ImportError:
-  try:
-    from collections import KeysView, ValuesView, ItemsView
-    _view = getattr(dict, 'viewkeys', False)
-    _view = True if _view else False # True if 2.7
-  except ImportError:
-    _view = False
+from collections.abc import KeysView, ValuesView, ItemsView
 import imp
 try:
   imp.find_module('sqlalchemy')
@@ -247,7 +238,7 @@ class dict_archive(archive):
         return
     def __asdict__(self):
         """build a dictionary containing the archive contents"""
-        return dict(getattr(self,'iteritems',self.items)())
+        return dict(self.items())
     def __repr__(self):
         return "dict_archive(%s, cached=False)" % (self.__asdict__())
     __repr__.__doc__ = dict.__repr__.__doc__
@@ -423,52 +414,18 @@ class dir_archive(archive):
         _dir = self._getdir(key)
         return os.path.exists(_dir)
     __contains__.__doc__ = dict.__contains__.__doc__
-    if getattr(dict, 'has_key', None):
-        has_key = __contains__
-        has_key.__doc__ = dict.has_key.__doc__
-        def __iter__(self):
-            return self._keydict().iterkeys()
-        def iteritems(self): #XXX: should be dictionary-itemiterator
-            keys = self._keydict()
-            return ((key,self.__getitem__(key)) for key in keys)
-        iteritems.__doc__ = dict.iteritems.__doc__
-        iterkeys = __iter__
-        iterkeys.__doc__ = dict.iterkeys.__doc__
-        def itervalues(self): #XXX: should be dictionary-valueiterator
-            keys = self._keydict()
-            return (self.__getitem__(key) for key in keys)
-        itervalues.__doc__ = dict.itervalues.__doc__
-    else:
-        def __iter__(self):
-            return iter(self._keydict().keys())
+    def __iter__(self):
+        return iter(self._keydict().keys())
     __iter__.__doc__ = dict.__iter__.__doc__
     def keys(self):
-        if sys.version_info[0] < 3:
-            return self._keydict().keys()
-        else: return KeysView(self) #XXX: show keys not dict
+        return KeysView(self) #XXX: show keys not dict
     keys.__doc__ = dict.keys.__doc__
     def items(self):
-        if sys.version_info[0] < 3:
-            keys = self._keydict()
-            return [(key,self.__getitem__(key)) for key in keys]
-        else: return ItemsView(self) #XXX: show items not dict
+        return ItemsView(self) #XXX: show items not dict
     items.__doc__ = dict.items.__doc__
     def values(self):
-        if sys.version_info[0] < 3:
-            keys = self._keydict()
-            return [self.__getitem__(key) for key in keys]
-        else: return ValuesView(self) #XXX: show values not dict
+        return ValuesView(self) #XXX: show values not dict
     values.__doc__ = dict.values.__doc__
-    if _view:
-        def viewkeys(self):
-            return KeysView(self) #XXX: show keys not dict
-        viewkeys.__doc__ = dict.viewkeys.__doc__
-        def viewvalues(self):
-            return ValuesView(self) #XXX: show values not dict
-        viewvalues.__doc__ = dict.viewvalues.__doc__
-        def viewitems(self):
-            return ItemsView(self) #XXX: show items not dict
-        viewitems.__doc__ = dict.viewitems.__doc__
     def popkeys(self, keys, *value):
         """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -833,48 +790,18 @@ class file_archive(archive):
     def __contains__(self, key):
         return key in self.__asdict__()
     __contains__.__doc__ = dict.__contains__.__doc__
-    if getattr(dict, 'has_key', None):
-        has_key = __contains__
-        has_key.__doc__ = dict.has_key.__doc__
-        def __iter__(self):
-            return self.__asdict__().iterkeys()
-        def iteritems(self):
-            return self.__asdict__().iteritems()
-        iteritems.__doc__ = dict.iteritems.__doc__
-        iterkeys = __iter__
-        iterkeys.__doc__ = dict.iterkeys.__doc__
-        def itervalues(self):
-            return self.__asdict__().itervalues()
-        itervalues.__doc__ = dict.itervalues.__doc__
-    else:
-        def __iter__(self):
-            return iter(self.__asdict__().keys())
+    def __iter__(self):
+        return iter(self.__asdict__().keys())
     __iter__.__doc__ = dict.__iter__.__doc__
     def keys(self):
-        if sys.version_info[0] < 3:
-            return self.__asdict__().keys()
-        else: return KeysView(self) #XXX: show keys not dict
+        return KeysView(self) #XXX: show keys not dict
     keys.__doc__ = dict.keys.__doc__
     def items(self):
-        if sys.version_info[0] < 3:
-            return self.__asdict__().items()
-        else: return ItemsView(self) #XXX: show items not dict
+        return ItemsView(self) #XXX: show items not dict
     items.__doc__ = dict.items.__doc__
     def values(self):
-        if sys.version_info[0] < 3:
-            return self.__asdict__().values()
-        else: return ValuesView(self) #XXX: show values not dict
+        return ValuesView(self) #XXX: show values not dict
     values.__doc__ = dict.values.__doc__
-    if _view:
-        def viewkeys(self):
-            return KeysView(self) #XXX: show keys not dict
-        viewkeys.__doc__ = dict.viewkeys.__doc__
-        def viewvalues(self):
-            return ValuesView(self) #XXX: show values not dict
-        viewvalues.__doc__ = dict.viewvalues.__doc__
-        def viewitems(self):
-            return ItemsView(self) #XXX: show items not dict
-        viewitems.__doc__ = dict.viewitems.__doc__
     def popkeys(self, keys, *value):
         """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -1110,52 +1037,18 @@ if sql:
       def __contains__(self, key):
           return key in self._keys()
       __contains__.__doc__ = dict.__contains__.__doc__
-      if getattr(dict, 'has_key', None):
-          has_key = __contains__
-          has_key.__doc__ = dict.has_key.__doc__
-          def __iter__(self):
-              return self._tables().iterkeys()
-          def iteritems(self): #XXX: should be dictionary-itemiterator
-              keys = self._tables()
-              return ((key,self.__getitem__(key)) for key in keys)
-          iteritems.__doc__ = dict.iteritems.__doc__
-          iterkeys = __iter__
-          iterkeys.__doc__ = dict.iterkeys.__doc__
-          def itervalues(self): #XXX: should be dictionary-valueiterator
-              keys = self._tables()
-              return (self.__getitem__(key) for key in keys)
-          itervalues.__doc__ = dict.itervalues.__doc__
-      else:
-          def __iter__(self):
-              return iter(self._keys())
+      def __iter__(self):
+          return iter(self._keys())
       __iter__.__doc__ = dict.__iter__.__doc__
       def keys(self):
-          if sys.version_info[0] < 3:
-              return self._keys()
-          else: return KeysView(self) #XXX: show keys not dict
+          return KeysView(self) #XXX: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       def items(self):
-          if sys.version_info[0] < 3:
-              keys = self._tables()
-              return [(key,self.__getitem__(key)) for key in keys]
-          else: return ItemsView(self) #XXX: show items not dict
+          return ItemsView(self) #XXX: show items not dict
       items.__doc__ = dict.items.__doc__
       def values(self):
-          if sys.version_info[0] < 3:
-              keys = self._tables()
-              return [self.__getitem__(key) for key in keys]
-          else: return ValuesView(self) #XXX: show values not dict
+          return ValuesView(self) #XXX: show values not dict
       values.__doc__ = dict.values.__doc__
-      if _view:
-          def viewkeys(self):
-              return KeysView(self) #XXX: show keys not dict
-          viewkeys.__doc__ = dict.viewkeys.__doc__
-          def viewvalues(self):
-              return ValuesView(self) #XXX: show values not dict
-          viewvalues.__doc__ = dict.viewvalues.__doc__
-          def viewitems(self):
-              return ItemsView(self) #XXX: show items not dict
-          viewitems.__doc__ = dict.viewitems.__doc__
       def popkeys(self, keys, *value):
           """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -1471,58 +1364,19 @@ if sql:
       fromkeys.__doc__ = dict.fromkeys.__doc__
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
-          if getattr(dict, 'iteritems', None):
-              return dict(self.iteritems())
-          else: return dict(self.items())
+          return dict(self.items())
       def __repr__(self):
           return "sqltable_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
-      if getattr(dict, 'has_key', None):
-          def has_key(self, key): #XXX: different than contains... why?
-              query = sql.select([self.__state__['id']], self._key == key)
-              row = self._engine.execute(query).fetchone()
-              return row != None
-          has_key.__doc__ = dict.has_key.__doc__
-          def iteritems(self): #XXX: should be dictionary-itemiterator
-              query = sql.select([self.__state__['id']])
-              result = self._engine.execute(query)
-              for row in result:
-                  yield (row[0], row[self._val])
-          iteritems.__doc__ = dict.iteritems.__doc__
-          iterkeys = __iter__
-          iterkeys.__doc__ = dict.iterkeys.__doc__
-          def itervalues(self): #XXX: should be dictionary-valueiterator
-              query = sql.select([self.__state__['id']])
-              result = self._engine.execute(query)
-              for row in result:
-                  yield row[self._val]
-          itervalues.__doc__ = dict.itervalues.__doc__
-          def keys(self):
-              return list(self.__iter__())
-          def items(self):
-              return list(self.iteritems())
-          def values(self):
-              return list(self.itervalues())
-      else:
-          def keys(self):
-              return KeysView(self) #XXX: show keys not dict
-          def items(self):
-              return ItemsView(self) #XXX: show keys not dict
-          def values(self):
-              return ValuesView(self) #XXX: show keys not dict
+      def keys(self):
+          return KeysView(self) #XXX: show keys not dict
+      def items(self):
+          return ItemsView(self) #XXX: show keys not dict
+      def values(self):
+          return ValuesView(self) #XXX: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       items.__doc__ = dict.items.__doc__
       values.__doc__ = dict.values.__doc__
-      if _view:
-          def viewkeys(self):
-              return KeysView(self) #XXX: show keys not dict
-          viewkeys.__doc__ = dict.viewkeys.__doc__
-          def viewvalues(self):
-              return ValuesView(self) #XXX: show values not dict
-          viewvalues.__doc__ = dict.viewvalues.__doc__
-          def viewitems(self):
-              return ItemsView(self) #XXX: show items not dict
-          viewitems.__doc__ = dict.viewitems.__doc__
       def popkeys(self, keys, *value):
           """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -1742,43 +1596,15 @@ else:
       def __repr__(self):
           return "sqltable_archive('%s' %s, cached=False)" % (self.name, self.__asdict__())
       __repr__.__doc__ = dict.__repr__.__doc__
-      if getattr(dict, 'has_key', None):
-          has_key = __contains__
-          has_key.__doc__ = dict.has_key.__doc__
-          def iteritems(self): #XXX: should be dictionary-itemiterator
-              return ((k,self.__getitem__(k)) for k in self.__iter__())
-          iteritems.__doc__ = dict.iteritems.__doc__
-          iterkeys = __iter__
-          iterkeys.__doc__ = dict.iterkeys.__doc__
-          def itervalues(self): #XXX: should be dictionary-valueiterator
-              return (self.__getitem__(k) for k in self.__iter__())
-          itervalues.__doc__ = dict.itervalues.__doc__
-          def keys(self):
-              return list(self.__iter__())
-          def items(self):
-              return list(self.iteritems())
-          def values(self):
-              return list(self.itervalues())
-      else:
-          def keys(self):
-              return KeysView(self) #XXX: show keys not dict
-          def items(self):
-              return ItemsView(self) #XXX: show keys not dict
-          def values(self):
-              return ValuesView(self) #XXX: show keys not dict
+      def keys(self):
+          return KeysView(self) #XXX: show keys not dict
+      def items(self):
+          return ItemsView(self) #XXX: show keys not dict
+      def values(self):
+          return ValuesView(self) #XXX: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       items.__doc__ = dict.items.__doc__
       values.__doc__ = dict.values.__doc__
-      if _view:
-          def viewkeys(self):
-              return KeysView(self) #XXX: show keys not dict
-          viewkeys.__doc__ = dict.viewkeys.__doc__
-          def viewvalues(self):
-              return ValuesView(self) #XXX: show values not dict
-          viewvalues.__doc__ = dict.viewvalues.__doc__
-          def viewitems(self):
-              return ItemsView(self) #XXX: show items not dict
-          viewitems.__doc__ = dict.viewitems.__doc__
       def popkeys(self, keys, *value):
           """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -1919,7 +1745,7 @@ if hdf:
               memo = {}
               f = hdf.File(filename, 'r')
               _f = self._attrs(f)
-              for k,v in getattr(f, 'iteritems', f.items)():
+              for k,v in f.items():
                   memo[self._loadkey(k.encode())] = self._loadval(v)
           except TypeError: # we have an unhashable type
               memo = {}
@@ -1939,7 +1765,7 @@ if hdf:
           f = None
           try:
               f = hdf.File(_filename, 'w' if new else 'a')
-              for k,v in getattr(memo, 'iteritems', memo.items)():
+              for k,v in memo.items():
                  #self._attrs(f).update({self._dumpkey(k): self._dumpval(v)})
                   _f = self._attrs(f)
                   _k = self._dumpkey(k)
@@ -2037,32 +1863,10 @@ if hdf:
           return _value
       get.__doc__ = dict.get.__doc__
       def keys(self):
-          if sys.version_info[0] >= 3:
-              return KeysView(self) #XXX: show keys not dict
-          filename = self.__state__['id']
-          f = None
-          try:
-              f = hdf.File(filename, 'r')
-              _keys = [self._loadkey(key) for key in self._attrs(f).keys()]
-          except: #XXX: should only catch appropriate exceptions
-              raise OSError("error reading file archive %s" % filename)
-          finally:
-              if f is not None: f.close()
-          return _keys
+          return KeysView(self) #XXX: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       def values(self):
-          if sys.version_info[0] >= 3:
-              return ValuesView(self) #XXX: show values not dict
-          filename = self.__state__['id']
-          f = None
-          try:
-              f = hdf.File(filename, 'r')
-              vals = [self._loadval(val) for val in self._attrs(f).values()]
-          except: #XXX: should only catch appropriate exceptions
-              raise OSError("error reading file archive %s" % filename)
-          finally:
-              if f is not None: f.close()
-          return vals
+          return ValuesView(self) #XXX: show values not dict
       values.__doc__ = dict.values.__doc__
       def __contains__(self, key):
           filename = self.__state__['id']
@@ -2077,38 +1881,12 @@ if hdf:
               if f is not None: f.close()
           return has_key
       __contains__.__doc__ = dict.__contains__.__doc__
-      if getattr(dict, 'has_key', None):
-          has_key = __contains__
-          has_key.__doc__ = dict.has_key.__doc__
-          def __iter__(self):
-              return dict((j,i) for (i,j) in enumerate(self.keys())).iterkeys()
-          def iteritems(self):
-              return self.__asdict__().iteritems()
-          iteritems.__doc__ = dict.iteritems.__doc__
-          iterkeys = __iter__
-          iterkeys.__doc__ = dict.iterkeys.__doc__
-          def itervalues(self):
-              return dict((j,i) for (i,j) in enumerate(self.values())).itervalues()
-          itervalues.__doc__ = dict.itervalues.__doc__
-      else:
-          def __iter__(self):
-              return iter(self.keys())
+      def __iter__(self):
+          return iter(self.keys())
       __iter__.__doc__ = dict.__iter__.__doc__
       def items(self):
-          if sys.version_info[0] < 3:
-              return self.__asdict__().items()
-          else: return ItemsView(self) #XXX: show items not dict
+          return ItemsView(self) #XXX: show items not dict
       items.__doc__ = dict.items.__doc__
-      if _view:
-          def viewkeys(self):
-              return KeysView(self) #XXX: show keys not dict
-          viewkeys.__doc__ = dict.viewkeys.__doc__
-          def viewvalues(self):
-              return ValuesView(self) #XXX: show values not dict
-          viewvalues.__doc__ = dict.viewvalues.__doc__
-          def viewitems(self):
-              return ItemsView(self) #XXX: show items not dict
-          viewitems.__doc__ = dict.viewitems.__doc__
       def popkeys(self, keys, *value):
           """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""
@@ -2276,52 +2054,18 @@ if hdf:
           _dir = self._getdir(key)
           return os.path.exists(_dir)
       __contains__.__doc__ = dict.__contains__.__doc__
-      if getattr(dict, 'has_key', None):
-          has_key = __contains__
-          has_key.__doc__ = dict.has_key.__doc__
-          def __iter__(self):
-              return self._keydict().iterkeys()
-          def iteritems(self): #XXX: should be dictionary-itemiterator
-              keys = self._keydict()
-              return ((key,self.__getitem__(key)) for key in keys)
-          iteritems.__doc__ = dict.iteritems.__doc__
-          iterkeys = __iter__
-          iterkeys.__doc__ = dict.iterkeys.__doc__
-          def itervalues(self): #XXX: should be dictionary-valueiterator
-              keys = self._keydict()
-              return (self.__getitem__(key) for key in keys)
-          itervalues.__doc__ = dict.itervalues.__doc__
-      else:
-          def __iter__(self):
-              return iter(self._keydict().keys())
+      def __iter__(self):
+          return iter(self._keydict().keys())
       __iter__.__doc__ = dict.__iter__.__doc__
       def keys(self):
-          if sys.version_info[0] < 3:
-              return self._keydict().keys()
-          else: return KeysView(self) #XXX: show keys not dict
+          return KeysView(self) #XXX: show keys not dict
       keys.__doc__ = dict.keys.__doc__
       def items(self):
-          if sys.version_info[0] < 3:
-              keys = self._keydict()
-              return [(key,self.__getitem__(key)) for key in keys]
-          else: return ItemsView(self) #XXX: show items not dict
+          return ItemsView(self) #XXX: show items not dict
       items.__doc__ = dict.items.__doc__
       def values(self):
-          if sys.version_info[0] < 3:
-              keys = self._keydict()
-              return [self.__getitem__(key) for key in keys]
-          else: return ValuesView(self) #XXX: show values not dict
+          return ValuesView(self) #XXX: show values not dict
       values.__doc__ = dict.values.__doc__
-      if _view:
-          def viewkeys(self):
-              return KeysView(self) #XXX: show keys not dict
-          viewkeys.__doc__ = dict.viewkeys.__doc__
-          def viewvalues(self):
-              return ValuesView(self) #XXX: show values not dict
-          viewvalues.__doc__ = dict.viewvalues.__doc__
-          def viewitems(self):
-              return ItemsView(self) #XXX: show items not dict
-          viewitems.__doc__ = dict.viewitems.__doc__
       def popkeys(self, keys, *value):
           """    D.popkeys(k[,d]) -> v, remove specified keys and return corresponding values.
     If key in keys is not found, d is returned if given, otherwise KeyError is raised."""

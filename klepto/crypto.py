@@ -87,12 +87,7 @@ string.encodings = encodings
 
 def serializers(): #FIXME: could be much smarter
     """return a tuple of string names of serializers"""
-    try:
-        import imp
-        imp.find_module('cPickle')
-        serializers = (None, 'pickle', 'json', 'cPickle', 'dill')
-    except ImportError:
-        serializers = (None, 'pickle', 'json', 'dill')
+    serializers = (None, 'pickle', 'json', 'dill')
     try:
         import imp
         imp.find_module('cloudpickle')

@@ -150,13 +150,10 @@ def test_keygen_foo():
     assert foo.call() == 11
     h = hashmap(algorithm='md5')
     foo.register(h)
-    if hex(sys.hexversion) < '0x30300f0':
-        _hash1 = '2c8d801f4078eba873a5fb6909ab0f8d'
-        _hash2 = '949883b97d9fda9c8fe6bd468fe90af9'
-    else: # python 3.3 has hash randomization, apparently
-        from klepto.crypto import hash
-        _hash1 = hash(res1, 'md5')
-        _hash2 = hash(res2, 'md5')
+    # hash randomization
+    from klepto.crypto import hash
+    _hash1 = hash(res1, 'md5')
+    _hash2 = hash(res2, 'md5')
     assert foo(0,1,z=10) == _hash1
     assert str(foo.keymap()) == str(h)
     assert foo.key() == _hash1
