@@ -98,7 +98,7 @@ setup_kwds = dict(
         'Topic :: Software Development',
     ],
     packages = ['klepto','klepto.tests'],
-    package_dir = {'klepto':'klepto', 'klepto.tests':'tests'},
+    package_dir = {'klepto':'klepto', 'klepto.tests':'klepto/tests'},
 )
 
 # force python-, abi-, and platform-specific naming of bdist_wheel
