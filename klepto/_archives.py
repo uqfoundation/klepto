@@ -52,7 +52,7 @@ __all__ = ['cache','dict_archive','null_archive','dir_archive',\
            'hdf_archive','hdfdir_archive']
 
 PREFIX = "K_"  # hash needs to be importable
-TEMP = "I_"    # indicates 'temporary' file
+TEMP = ".I_"    # indicates 'temporary' file
 #DEAD = "D_"    # indicates 'deleted' key
 
 
