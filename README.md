@@ -107,8 +107,8 @@ Requirements
 
 * ``python`` (or ``pypy``), **>=3.7**
 * ``setuptools``, **>=42**
-* ``dill``, **>=0.3.5.1**
-* ``pox``, **>=0.3.1**
+* ``dill``, **>=0.3.6**
+* ``pox``, **>=0.3.2**
 
 Optional requirements:
 
