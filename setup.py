@@ -89,7 +89,7 @@ dill_version = 'dill>=0.3.6'
 pox_version = 'pox>=0.3.2'
 jsonpickle_version = 'jsonpickle>=0.9.6'
 cloudpickle_version = 'cloudpickle>=0.5.2'
-sqlalchemy_version = 'sqlalchemy>=0.8.4'
+sqlalchemy_version = 'sqlalchemy>=0.8.4, <2.0.0'
 h5py_version = 'h5py>=2.8.0'
 if sysversion < (3,7,1):
     pandas_version = 'pandas>=0.17.0, <1.2.0'
