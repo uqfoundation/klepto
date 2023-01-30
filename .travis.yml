@@ -46,7 +46,7 @@ before_install:
     - set -e  # fail on any error
     - if [[ $COVERAGE == "true" ]]; then pip install coverage; fi
     - if [[ $PANDAS == "true" ]]; then pip install pandas; fi
-    - if [[ $SQLALCHEMY == "true" ]]; then pip install sqlalchemy; fi
+    - if [[ $SQLALCHEMY == "true" ]]; then pip install "sqlalchemy<2.0.0"; fi
     - if [[ $H5PY == "true" ]]; then pip install h5py; fi
     - if [[ $DILL == "master" ]]; then pip install "https://github.com/uqfoundation/dill/archive/master.tar.gz"; fi
 
