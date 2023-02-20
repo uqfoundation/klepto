@@ -4,12 +4,12 @@ persistent caching to memory, disk, or database
 
 About Klepto
 ------------
-``klepto`` extends python's ``lru_cache`` to utilize different keymaps and
+``klepto`` extends Python's ``lru_cache`` to utilize different keymaps and
 alternate caching algorithms, such as ``lfu_cache`` and ``mru_cache``.
 While caching is meant for fast access to saved results, ``klepto`` also
 has archiving capabilities, for longer-term storage. ``klepto`` uses a
 simple dictionary-sytle interface for all caches and archives, and all
-caches can be applied to any python function as a decorator. Keymaps
+caches can be applied to any Python function as a decorator. Keymaps
 are algorithms for converting a function's input signature to a unique
 dictionary, where the function's results are the dictionary value.
 Thus for ``y = f(x)``, ``y`` will be stored in ``cache[x]`` (e.g. ``{x:y}``).
@@ -23,7 +23,7 @@ processes. ``klepto`` enables a user to decorate a function, save the
 results to a file or database archive, close the interpreter,
 start a new session, and reload the function and it's cache.
 
-``klepto`` is part of ``pathos``, a python framework for heterogeneous computing.
+``klepto`` is part of ``pathos``, a Python framework for heterogeneous computing.
 ``klepto`` is in active development, so any user feedback, bug reports, comments,
 or suggestions are highly appreciated.  A list of issues is located at https://github.com/uqfoundation/klepto/issues, with a legacy list maintained at https://uqfoundation.github.io/project/pathos/query.
 
@@ -52,10 +52,10 @@ Major Features
 
 ``klepto`` provides the following keymaps:
 
-* ``keymap`` - keys are raw python objects
-* ``hashmap`` - keys are a hash for the python object
-* ``stringmap`` - keys are the python object cast as a string
-* ``picklemap`` - keys are the serialized python object
+* ``keymap`` - keys are raw Python objects
+* ``hashmap`` - keys are a hash for the Python object
+* ``stringmap`` - keys are the Python object cast as a string
+* ``picklemap`` - keys are the serialized Python object
 
 ``klepto`` also includes a few useful decorators providing:
 

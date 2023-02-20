@@ -27,10 +27,10 @@ class dict_archive(_dict_archive):
     def __new__(dict_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with an in-memory dictionary archive backend
 
-    Inputs:
-        name: (optional) identifier string [default: None]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
+    Args:
+        name (str, default=None): (optional) identifier string
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
         """
         if dict is None: dict = {}
         archive = _dict_archive()
@@ -52,10 +52,10 @@ class null_archive(_null_archive):
     def __new__(null_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a permanently-empty archive backend
 
-    Inputs:
-        name: (optional) identifier string [default: None]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
+    Args:
+        name (str, default=None): (optional) identifier string
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
         """
         if dict is None: dict = {}
         archive = _null_archive()
@@ -77,16 +77,16 @@ class dir_archive(_dir_archive):
     def __new__(dir_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a file-folder archive backend
 
-    Inputs:
-        name: name of the root archive directory [default: memo]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle file contents; otherwise save python objects
-        compression: compression level (0 to 9) [default: 0 (no compression)]
-        permissions: octal representing read/write permissions [default: 0o775]
-        memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
-        memsize: approximate size (in MB) of cache for in-memory compression
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        name (str, default='memo'): path of the archive root directory
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): save python objects in pickled files
+        compression (int, default=0): compression level (0 to 9), 0 is None
+        permissions (octal, default=0o775): read/write permission indicator
+        memmode (str, default=None): mode, one of ``{None, 'r+', 'r', 'w+', 'c'}``
+        memsize (int, default=100): size (MB) of cache for in-memory compression
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
         if dict is None: dict = {}
         archive = _dir_archive(name, **kwds)
@@ -107,12 +107,12 @@ class file_archive(_file_archive):
     def __new__(file_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a single file archive backend
 
-    Inputs:
-        name: name of the file archive [default: memo.pkl or memo.py]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle file contents; otherwise save python objects
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        name (str, default='memo.pkl'): path of the file archive
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): save python objects in pickled file
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
         if dict is None: dict = {}
         archive = _file_archive(name, **kwds)
@@ -147,12 +147,12 @@ class sqltable_archive(_sqltable_archive):
     options can provide database configuration, such as connection pooling.
     To use a mysql or postgresql database, sqlalchemy must be installed.
 
-    Inputs:
-        name: url for the sql database and table [default: (see note above)]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle table contents; otherwise cast as strings
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        name (str, default=None): url for database table (see above note)
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): save objects as pickled strings
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
         if dict is None: dict = {}
         db, table = _sqlname(name)
@@ -186,12 +186,12 @@ class sql_archive(_sql_archive):
     can provide database configuration, such as connection pooling.
     To use a mysql or postgresql database, sqlalchemy must be installed.
 
-    Inputs:
-        name: url for the sql database [default: (see note above)]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle table contents; otherwise cast as strings
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        name (str, default=None): database url (see above note)
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): save objects as pickled strings
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
         if dict is None: dict = {}
         archive = _sql_archive(name, **kwds)
@@ -212,14 +212,14 @@ class hdfdir_archive(_hdfdir_archive):
     def __new__(hdfdir_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a hdf5 file-folder archive backend
 
-    Inputs:
-        name: name of the root archive directory [default: memo]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle file contents; otherwise save python objects
-        permissions: octal representing read/write permissions [default: 0o775]
-        protocol: pickling protocol [default: None (use the default protocol)]
-        meta: if True, store as file root metadata; otherwise store in datasets
+    Args:
+        name (str, default='memo'): path of the archive root directory
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): pickle saved python objects
+        permissions (octal, default=0o775): read/write permission indicator
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
+        meta (bool, default=False): store in root metadata (not in dataset)
         """
         if dict is None: dict = {}
         archive = _hdfdir_archive(name, **kwds)
@@ -240,13 +240,13 @@ class hdf_archive(_hdf_archive):
     def __new__(hdf_archive, name=None, dict=None, cached=True, **kwds):
         """initialize a dictionary with a single hdf5 file archive backend
 
-    Inputs:
-        name: name of the hdf file archive [default: memo.hdf5]
-        dict: initial dictionary to seed the archive
-        cached: if True, use an in-memory cache interface to the archive
-        serialized: if True, pickle file contents; otherwise save python objects
-        protocol: pickling protocol [default: None (use the default protocol)]
-        meta: if True, store as file root metadata; otherwise store in datasets
+    Args:
+        name (str, default='memo.hdf5'): path of the file archive
+        dict (dict, default={}): initial dictionary to seed the archive
+        cached (bool, default=True): interact through an in-memory cache
+        serialized (bool, default=True): pickle saved python objects
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
+        meta (bool, default=False): store in root metadata (not in dataset)
         """
         if dict is None: dict = {}
         archive = _hdf_archive(name, **kwds)

@@ -121,8 +121,8 @@ class cache(dict):
     def __init__(self, *args, **kwds):
         """initialize a dictionary with an archive backend
 
-    Additional Inputs:
-        archive: instance of archive object
+    Args:
+        archive (archive, default=null_archive()): instance of archive object
         """
         self.__swap__ = null_archive()
         self.__archive__ = kwds.pop('archive', null_archive())
@@ -292,14 +292,14 @@ class dir_archive(archive):
     def __init__(self, dirname=None, serialized=True, compression=0, permissions=None, **kwds):
         """initialize a file folder with a synchronized dictionary interface
 
-    Inputs:
-        dirname: name of the root archive directory [default: memo]
-        serialized: if True, pickle file contents; otherwise save python objects
-        compression: compression level (0 to 9) [default: 0 (no compression)]
-        permissions: octal representing read/write permissions [default: 0o775]
-        memmode: access mode for files, one of {None, 'r+', 'r', 'w+', 'c'}
-        memsize: approximate size (in MB) of cache for in-memory compression
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        dirname (str, default='memo'): path of the archive root directory
+        serialized (bool, default=True): save python objects in pickled files
+        compression (int, default=0): compression level (0 to 9), 0 is None
+        permissions (octal, default=0o775): read/write permission indicator
+        memmode (str, default=None): mode, one of ``{None, 'r+', 'r', 'w+', 'c'}``
+        memsize (int, default=100): size (MB) of cache for in-memory compression
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
         #XXX: if compression or mode is given, use joblib-style pickling
         #     (ignoring 'serialized'); else if serialized, use dill unless
@@ -307,7 +307,6 @@ class dir_archive(archive):
         #     (then use json-style pickling). If not serialized, then write
         #     raw objects and load objects with import. Also, if fast=True
         #     and protocol='json', the use protocol=None. #FIXME: needs doc
-        """dirname = full filepath"""
         if dirname is None: #FIXME: default root as /tmp or something better
             dirname = 'memo' #FIXME: need better default
         # set state
@@ -647,12 +646,11 @@ class file_archive(archive):
     def __init__(self, filename=None, serialized=True, **kwds): # False
         """initialize a file with a synchronized dictionary interface
 
-    Inputs:
-        filename: name of the file backend [default: memo.pkl or memo.py]
-        serialized: if True, pickle file contents; otherwise save python objects
-        protocol: pickling protocol [default: None (use the default protocol)]
+    Args:
+        filename (str, default='memo.pkl'): path of the file archive
+        serialized (bool, default=True): save python objects in pickled file
+        protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
         """
-        """filename = full filepath"""
         #FIXME: (needs doc) if protocol='json', use the json serializer
         protocol = kwds.get('protocol', None)
         if filename is None: #XXX: need better default filename?
@@ -880,10 +878,10 @@ if sql:
       the default database is 'defaultdb'.  Allows keyword options for database
       configuration, such as connection pooling.
 
-      Inputs:
-          database: url of the database backend [default: sqlite:///:memory:]
-          serialized: if True, pickle table contents; otherwise cast as strings
-          protocol: pickling protocol [default: None (use the default protocol)]
+      Args:
+          database (str, default=None): database url (see above note)
+          serialized (bool, default=True): save objects as pickled strings
+          protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
           """
           #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_sql__()
@@ -1164,11 +1162,11 @@ if sql:
       the default database is 'defaultdb'.  Allows keyword options for database
       configuration, such as connection pooling.
 
-      Inputs:
-          database: url of the database backend [default: sqlite:///:memory:]
-          table: name of the associated database table [default: 'memo']
-          serialized: if True, pickle table contents; otherwise cast as strings
-          protocol: pickling protocol [default: None (use the default protocol)]
+      Args:
+          database (str, default=None): database url (see above note)
+          table (str, default='memo'): name of the associated database table
+          serialized (bool, default=True): save objects as pickled strings
+          protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
           """
           #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_sql__()
@@ -1458,9 +1456,9 @@ else:
       limited to strings, integers, floats, and other basic objects.  To store
       functions, classes, and similar constructs, sqlalchemy must be installed.
 
-      Inputs:
-          database: url of the database backend [default: sqlite:///:memory:]
-          table: name of the associated database table [default: 'memo']
+      Args:
+          database (str, default=None): database url (see above note)
+          table (str, default='memo'): name of the associated database table
           """
           import sqlite3 as db
           if table is None: table = 'memo'
@@ -1682,11 +1680,11 @@ if hdf:
       def __init__(self, filename=None, serialized=True, **kwds):
           """initialize a hdf5 file with a synchronized dictionary interface
 
-      Inputs:
-          filename: name of the file backend [default: memo.hdf5]
-          serialized: if True, pickle hdf entries; otherwise save python objects
-          protocol: pickling protocol [default: None (use the default protocol)]
-          meta: if True, store as file root metadata; otherwise store in datasets
+      Args:
+          filename (str, default='memo.hdf5'): path of the file archive
+          serialized (bool, default=True): pickle saved python objects
+          protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
+          meta (bool, default=False): store in root metadata (not in dataset)
           """
           #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_hdf__()
@@ -1962,12 +1960,12 @@ if hdf:
       def __init__(self, dirname=None, serialized=True, **kwds):
           """initialize a hdf5 file with a synchronized dictionary interface
 
-      Inputs:
-          dirname: name of the root archive directory [default: memo]
-          serialized: if True, pickle hdf entries; otherwise save python objects
-          permissions: octal representing read/write permissions [default: 0o775]
-          protocol: pickling protocol [default: None (use the default protocol)]
-          meta: if True, store as file root metadata; otherwise store in datasets
+      Args:
+          dirname (str, default='memo'): path of the archive root directory
+          serialized (bool, default=True): pickle saved python objects
+          permissions (octal, default=0o775): read/write permission indicator
+          protocol (int, default=DEFAULT_PROTOCOL): pickling protocol
+          meta (bool, default=False): store in root metadata (not in dataset)
           """
           #FIXME: (needs doc) if protocol='json', use the json serializer
           __import_hdf__()
