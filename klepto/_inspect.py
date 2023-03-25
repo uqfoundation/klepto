@@ -86,8 +86,11 @@ def signature(func, variadic=True, markup=True, safe=False):
             p_kwds = func.keywords or {} # dict of default kwd values
             func = func.func
             identified = True
-        except AttributeError: #XXX: anything else to try? No? Give up.
-            pass
+        except AttributeError:
+            if hasattr(func, '__call__') and not hasattr(func, '__name__'):
+                func = func.__call__ # treat callable instance as __call__
+            else: #XXX: anything else to try? No? Give up.
+                pass
     if not identified:
         p_args = ()
         p_kwds = {}
@@ -197,8 +200,11 @@ def validate(func, *args, **kwds):
             func = func.func
             p_required = set(p_named) - set(p_defaults)
             identified = True
-        except AttributeError: #XXX: anything else to try? No? Give up.
-            pass
+        except AttributeError:
+            if hasattr(func, '__call__') and not hasattr(func, '__name__'):
+                func = func.__call__ # treat callable instance as __call__
+            else: #XXX: anything else to try? No? Give up.
+                pass
     if not identified:
         p_args = p_named = ()
         p_kwds = p_defaults = {}
