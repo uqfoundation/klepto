@@ -14,30 +14,27 @@ import shutil
 from random import random
 from pickle import PROTO, STOP
 from collections.abc import KeysView, ValuesView, ItemsView
-import imp
-try:
-  imp.find_module('sqlalchemy')
+from importlib import util as imp
+if imp.find_spec('sqlalchemy'):
   sql = True
   def __import_sql__():
       global sql
       import sqlalchemy as sql
-except ImportError:
+else:
   sql = None
-try:
-  imp.find_module('h5py')
+if imp.find_spec('h5py'):
   hdf = True
   def __import_hdf__():
       global hdf, np
       import h5py as hdf
-except ImportError:
+else:
   hdf = None
-try:
-  imp.find_module('pandas')
+if imp.find_spec('pandas'):
   pandas = True
   def __import_pandas__():
       global pandas
       import pandas
-except ImportError:
+else:
   pandas = None
 import json
 import dill
