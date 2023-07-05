@@ -3,14 +3,15 @@
 klepto package documentation
 ============================
 
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+
+    self
+    klepto
+
 .. automodule:: klepto
 ..  :exclude-members: +
-
-.. toctree::
-    :maxdepth: 2
-    :caption: Contents:
-
-    klepto
 
 Indices and tables
 ==================
