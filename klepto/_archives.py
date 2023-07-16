@@ -443,7 +443,7 @@ class dir_archive(archive):
     pop.__doc__ = dict.pop.__doc__
     def popitem(self):
         key = self.__iter__()
-        try: key = key.next()
+        try: key = next(key)
         except StopIteration: raise KeyError("popitem(): dictionary is empty")
         return (key, self.pop(key))
     popitem.__doc__ = dict.popitem.__doc__
@@ -1065,7 +1065,7 @@ if sql:
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
           key = self.__iter__()
-          try: key = key.next()
+          try: key = next(key)
           except StopIteration: raise KeyError("popitem(): dictionary is empty")
           return (key, self.pop(key))
       popitem.__doc__ = dict.popitem.__doc__
@@ -1270,8 +1270,9 @@ if sql:
           self._metadata = self._engine = self.__state__['id'] = None
           return
       def __len__(self):
-          query = self.__state__['id'].count()
-          return int(self._engine.execute(query).scalar())
+          from sqlalchemy import orm
+          session = orm.sessionmaker(bind=self._engine)()
+          return int(session.query(self.__state__['id']).count())
       def __contains__(self, key):
           query = sql.select([self._key], self._key == key)
           row = self._engine.execute(query).fetchone()
@@ -1399,7 +1400,7 @@ if sql:
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
           key = self.__iter__()
-          try: key = key.next()
+          try: key = next(key)
           except StopIteration: raise KeyError("popitem(): dictionary is empty")
           return (key, self.pop(key))
       popitem.__doc__ = dict.popitem.__doc__
@@ -1627,7 +1628,7 @@ else:
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
           key = self.__iter__()
-          try: key = key.next()
+          try: key = next(key)
           except StopIteration: raise KeyError("popitem(): dictionary is empty")
           return (key, self.pop(key))
       popitem.__doc__ = dict.popitem.__doc__
@@ -2082,7 +2083,7 @@ if hdf:
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
           key = self.__iter__()
-          try: key = key.next()
+          try: key = next(key)
           except StopIteration: raise KeyError("popitem(): dictionary is empty")
           return (key, self.pop(key))
       popitem.__doc__ = dict.popitem.__doc__
