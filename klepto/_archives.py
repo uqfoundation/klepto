@@ -905,26 +905,31 @@ if sql:
               'config': kwds.pop('config', kwds.copy())
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
           # get engine
+          kwds['future'] = True # 1.4 & 2.0
           if dbname == ':memory:':
               self._engine = sql.create_engine(url, **kwds)
           elif _database.startswith('sqlite'):
               self._engine = sql.create_engine(_database, **kwds)
           else:
-              self._engine = sql.create_engine(url) #XXX: **kwds ?
+              self._engine = sql.create_engine(url, future=True) #XXX: **kwds ?
               try:
-                  conn = self._engine.connect()
+                  self._conn = self._engine.connect()
                   if _database.startswith('postgres'):
-                      conn.connection.connection.set_isolation_level(0)
-                  conn.execute("CREATE DATABASE %s;" % dbname)
-              except Exception: pass
+                      self._conn.connection.connection.set_isolation_level(0)
+                  self._conn.execute(sql.text("CREATE DATABASE %s;" % dbname))
+                  self._conn.commit()
+              except Exception: self._conn = None
               finally:
                   if _database.startswith('postgres'):
-                      conn.connection.connection.set_isolation_level(1)
+                      self._conn.connection.connection.set_isolation_level(1)
               try:
-                  self._engine.execute("USE %s;" % dbname)
+                  if self._conn is None: self._conn = self._engine.connect()
+                  self._conn.execute(sql.text("USE %s;" % dbname))
+                  self._conn.commit()
               except Exception:
                   pass
               self._engine = sql.create_engine(_database, **kwds)
+          self._conn = self._engine.connect()
           # table internals
           self._metadata = sql.MetaData()
           self._key = 'Kkeyqwg907' # primary key name
@@ -943,22 +948,25 @@ if sql:
           """
           _database = self.__state__['id']
           url, dbname = _database.rsplit('/', 1)
-          self._engine = sql.create_engine(url)
+          self._engine = sql.create_engine(url, future=True) # 1.4 & 2.0
           try:
-              conn = self._engine.connect()
+              self._conn = self._engine.connect()
               if _database.startswith('postgres'):
                   # these two commands require superuser privs
-                  conn.execute("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname)
-                  conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname) # 'pid' used in postgresql >= 9.2
-                  conn.connection.connection.set_isolation_level(0)
-              conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
+                  self._conn.execute(sql.text("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname))
+                  self._conn.commit()
+                  self._conn.execute(sql.text("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname)) # 'pid' used in postgresql >= 9.2
+                  self._conn.commit()
+                  self._conn.connection.connection.set_isolation_level(0)
+              self._conn.execute(sql.text("DROP DATABASE %s;" % dbname)) # must be db owner
+              self._conn.commit()
               if _database.startswith('postgres'):
-                  conn.connection.connection.set_isolation_level(1)
+                  self._conn.connection.connection.set_isolation_level(1)
           except Exception:
               dbpath = _database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
-          self._metadata = self._engine = None # self.__state__['table']=None
+          self._metadata = self._engine = self._conn = None # self.__state__['table']=None
           return
       def __asdict__(self):
           """build a dictionary containing the archive contents"""
@@ -983,11 +991,11 @@ if sql:
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key): #XXX: value is table['key','key']; slow?
           table = self._gettable(key)
-          query = sql.select([table],table.c[self._key] == self._key)#XXX: slow?
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(table).where(table.c[self._key] == self._key)#XXX: slow?
+          row = self._conn.execute(query).fetchone()
           if row is None:
               raise RuntimeError("primary key for '%s' not found" % key)
-          return row[self._val]
+          return row._mapping[self._val]
       __getitem__.__doc__ = dict.__getitem__.__doc__
       def __repr__(self):
           return "sql_archive('%s', %s, cached=False)" % (self.name, self.__asdict__())
@@ -1003,7 +1011,8 @@ if sql:
               query = table.insert()
               values = {self._key: self._key}
               values.update(value)
-          self._engine.execute(query.values(**values))
+          self._conn.execute(query.values(**values))
+          self._conn.commit()
           return
       __setitem__.__doc__ = dict.__setitem__.__doc__
       def clear(self):
@@ -1118,7 +1127,8 @@ if sql:
           "get a list of tables in the database" #FIXME: with matching self._key
           if meta: return self._metadata.tables.keys()
           # look at all the tables in the database
-          names = self._engine.table_names()
+          inspector = sql.inspect(self._engine)
+          names = inspector.get_table_names()
           names = [str(name) for name in names]
           # clean up metadata by removing stale tables
           tables = set(self._metadata.tables.keys()) - set(names) #XXX: slow?
@@ -1193,26 +1203,31 @@ if sql:
               'config': kwds.pop('config', kwds.copy())
           } #XXX: _engine and _metadata (and _key and _val) also __state__ ?
           # get engine
+          kwds['future'] = True # 1.4 & 2.0
           if dbname == ':memory:':
               self._engine = sql.create_engine(url, **kwds)
           elif _database.startswith('sqlite'):
               self._engine = sql.create_engine(_database, **kwds)
           else:
-              self._engine = sql.create_engine(url) #XXX: **kwds ?
+              self._engine = sql.create_engine(url, future=True) #XXX: **kwds ?
               try:
-                  conn = self._engine.connect()
+                  self._conn = self._engine.connect()
                   if _database.startswith('postgres'):
-                      conn.connection.connection.set_isolation_level(0)
-                  conn.execute("CREATE DATABASE %s;" % dbname)
-              except Exception: pass
+                      self._conn.connection.connection.set_isolation_level(0)
+                  self._conn.execute(sql.text("CREATE DATABASE %s;" % dbname))
+                  self._conn.commit()
+              except Exception: self._conn = None
               finally:
                   if _database.startswith('postgres'):
-                      conn.connection.connection.set_isolation_level(1)
+                      self._conn.connection.connection.set_isolation_level(1)
               try:
-                  self._engine.execute("USE %s;" % dbname)
+                  if self._conn is None: self._conn = self._engine.connect()
+                  self._conn.execute(sql.text("USE %s;" % dbname))
+                  self._conn.commit()
               except Exception:
                   pass
               self._engine = sql.create_engine(_database, **kwds)
+          self._conn = self._engine.connect()
           # prepare to create table
           self._metadata = sql.MetaData()
           self._key = 'Kkey' # primary key name
@@ -1252,30 +1267,33 @@ if sql:
               return
           _database = self.__state__['root']
           url, dbname = _database.rsplit('/', 1)
-          self._engine = sql.create_engine(url)
+          self._engine = sql.create_engine(url, future=True) # 1.4 & 2.0
           try:
-              conn = self._engine.connect()
+              self._conn = self._engine.connect()
               if _database.startswith('postgres'):
                   # these two commands require superuser privs
-                  conn.execute("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname)
-                  conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname) # 'pid' used in postgresql >= 9.2
-                  conn.connection.connection.set_isolation_level(0)
-              conn.execute("DROP DATABASE %s;" % dbname) # must be db owner
+                  self._conn.execute(sql.text("update pg_database set datallowconn = 'false' WHERE datname = '%s';" % dbname))
+                  self._conn.commit()
+                  self._conn.execute(sql.text("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';" % dbname)) # 'pid' used in postgresql >= 9.2
+                  self._conn.commit()
+                  self._conn.connection.connection.set_isolation_level(0)
+              self._conn.execute(sql.text("DROP DATABASE %s;" % dbname)) # must be db owner
+              self._conn.commit()
               if _database.startswith('postgres'):
-                  conn.connection.connection.set_isolation_level(1)
+                  self._conn.connection.connection.set_isolation_level(1)
           except Exception:
               dbpath = _database.split('///')[-1]
               if os.path.exists(dbpath): # else fail silently
                   os.remove(dbpath)
-          self._metadata = self._engine = self.__state__['id'] = None
+          self._metadata = self._engine = self._conn = self.__state__['id'] = None
           return
       def __len__(self):
           from sqlalchemy import orm
-          session = orm.sessionmaker(bind=self._engine)()
+          session = orm.sessionmaker(bind=self._engine, future=True)() # 1.4 & 2.0
           return int(session.query(self.__state__['id']).count())
       def __contains__(self, key):
-          query = sql.select([self._key], self._key == key)
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(self._key).where(self._key == key)
+          row = self._conn.execute(query).fetchone()
           return row is not None
       __contains__.__doc__ = dict.__contains__.__doc__
       def __setitem__(self, key, value):
@@ -1288,7 +1306,8 @@ if sql:
               values = {self._key.name: key}
               values.update(value)
               query = table.insert()
-          self._engine.execute(query.values(**values))
+          self._conn.execute(query.values(**values))
+          self._conn.commit()
           return
       __setitem__.__doc__ = dict.__setitem__.__doc__
       #FIXME: missing __cmp__, __...__
@@ -1318,33 +1337,35 @@ if sql:
           return
       __delitem__.__doc__ = dict.__delitem__.__doc__
       def __getitem__(self, key):
-          query = sql.select([self.__state__['id']], self._key == key)
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(self.__state__['id']).where(self._key == key)
+          row = self._conn.execute(query).fetchone()
           if row is None: raise KeyError(key)
-          return row[self._val]
+          return row._mapping[self._val]
       __getitem__.__doc__ = dict.__getitem__.__doc__
       def __iter__(self): #XXX: should be dictionary-keyiterator
-          query = sql.select([self._key])
-          result = self._engine.execute(query)
+          query = sql.select(self._key)
+          result = self._conn.execute(query)
           for row in result:
               yield row[0]
       __iter__.__doc__ = dict.__iter__.__doc__
       def get(self, key, value=None):
-          query = sql.select([self.__state__['id']], self._key == key)
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(self.__state__['id']).where(self._key == key)
+          row = self._conn.execute(query).fetchone()
           if row != None:
-              _value = row[self._val]
+              _value = row._mapping[self._val]
           else: _value = value
           return _value
       get.__doc__ = dict.get.__doc__
       def clear(self):
           query = self.__state__['id'].delete()
-          self._engine.execute(query)
+          self._conn.execute(query)
+          self._conn.commit()
           return
       clear.__doc__ = dict.clear.__doc__
      #def insert(self, d): #XXX: don't allow this method, or hide ?
      #    query = self.__state__['id'].insert(d)
-     #    self._engine.execute(query)
+     #    self._conn.execute(query)
+     #    self._conn.commit()
      #    return
       def copy(self, name=None): #XXX: always None? or allow other settings?
           "D.copy(name) -> a copy of D, with a new archive at the given name"
@@ -1387,15 +1408,16 @@ if sql:
           L = len(value)
           if L > 1:
               raise TypeError("pop expected at most 2 arguments, got %s" % str(L+1))
-          query = sql.select([self.__state__['id']], self._key == key)
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(self.__state__['id']).where(self._key == key)
+          row = self._conn.execute(query).fetchone()
           if row != None:
-              _value = row[self._val]
+              _value = row._mapping[self._val]
           else:
               if not L: raise KeyError(key)
               _value = value[0]
-          query = sql.delete(self.__state__['id'], self._key == key)
-          self._engine.execute(query)
+          query = sql.delete(self.__state__['id']).where(self._key == key)
+          self._conn.execute(query)
+          self._conn.commit()
           return _value
       pop.__doc__ = dict.pop.__doc__
       def popitem(self):
@@ -1408,10 +1430,10 @@ if sql:
           L = len(value)
           if L > 1:
               raise TypeError("setvalue expected at most 2 arguments, got %s" % str(L+1))
-          query = sql.select([self.__state__['id']], self._key == key)
-          row = self._engine.execute(query).fetchone()
+          query = sql.select(self.__state__['id']).where(self._key == key)
+          row = self._conn.execute(query).fetchone()
           if row != None:
-              _value = row[self._val]
+              _value = row._mapping[self._val]
           else:
               if not L: _value = None
               else: _value = value[0]

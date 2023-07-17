@@ -114,7 +114,7 @@ Optional requirements:
 
 * ``h5py``, **>=2.8.0**
 * ``pandas``, **>=0.17.0**
-* ``sqlalchemy``, **>=0.8.4**
+* ``sqlalchemy``, **>=1.4.0**
 * ``jsonpickle``, **>=0.9.6**
 * ``cloudpickle``, **>=0.5.2**
 
