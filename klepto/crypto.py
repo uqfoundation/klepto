@@ -16,7 +16,7 @@ __hash = hash
 def algorithms():
     """return a tuple of available hash algorithms"""
     try:
-        algs =  hashlib.algorithms
+        algs =  tuple(hashlib.algorithms_available)
     except:
         algs = ('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512')
     return (None,) + algs
