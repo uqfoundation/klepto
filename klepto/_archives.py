@@ -468,7 +468,8 @@ class dir_archive(archive):
         # special handling for pickles; enable non-strings (however 1=='1')
         try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
         except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
-        return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+        key = hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+        return key.replace('-','_')
        ##XXX: below probably fails on windows, and could be huge... use 'md5'
        #return repr(key)[1:-1] if ispickle else str(key) # or repr?
 
@@ -2129,7 +2130,8 @@ if hdf:
           # special handling for pickles; enable non-strings (however 1=='1')
           try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
           except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
-          return hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+          key = hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
+          return key.replace('-','_')
           #XXX: special handling in ispickle for protocol=json?
          ##XXX: below probably fails on windows, and could be huge... use 'md5'
          #return repr(key)[1:-1] if ispickle else str(key) # or repr?
