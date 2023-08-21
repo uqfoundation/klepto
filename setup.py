@@ -9,8 +9,8 @@
 import os
 import sys
 # drop support for older python
-if sys.version_info < (3, 7):
-    unsupported = 'Versions of Python before 3.7 are not supported'
+if sys.version_info < (3, 8):
+    unsupported = 'Versions of Python before 3.8 are not supported'
     raise ValueError(unsupported)
 
 # get distribution meta info
@@ -55,14 +55,13 @@ setup_kwds = dict(
         'Source Code':'https://github.com/uqfoundation/klepto',
         'Bug Tracker':'https://github.com/uqfoundation/klepto/issues',
     },
-    python_requires = '>=3.7',
+    python_requires = '>=3.8',
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
@@ -91,10 +90,7 @@ jsonpickle_version = 'jsonpickle>=0.9.6'
 cloudpickle_version = 'cloudpickle>=0.5.2'
 sqlalchemy_version = 'sqlalchemy>=1.4.0'
 h5py_version = 'h5py>=2.8.0'
-if sysversion < (3,7,1):
-    pandas_version = 'pandas>=0.17.0, <1.2.0'
-else:
-    pandas_version = 'pandas>=0.17.0'
+pandas_version = 'pandas>=0.17.0'
 # add dependencies
 depend = [pox_version, dill_version]
 extras = {'archives': [h5py_version, sqlalchemy_version, pandas_version], 'crypto': [jsonpickle_version, cloudpickle_version]}

@@ -105,7 +105,7 @@ Requirements
 ------------
 ``klepto`` requires:
 
-* ``python`` (or ``pypy``), **>=3.7**
+* ``python`` (or ``pypy``), **>=3.8**
 * ``setuptools``, **>=42**
 * ``dill``, **>=0.3.7**
 * ``pox``, **>=0.3.3**
