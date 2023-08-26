@@ -180,12 +180,12 @@ class cache(dict):
         if L > 1: raise TypeError("archived expected at most 1 argument, got %s" % str(L+1))
         if bool(on[0]):
             if not isinstance(self.__swap__, null_archive):
-                self.__swap__, self.__archive__ = self.__archive__, self.__swap__
-            elif isinstance(self.__archive__, null_archive):
+                self.__swap__, self.archive = self.archive, self.__swap__
+            elif isinstance(self.archive, null_archive):
                 raise ValueError("no valid archive has been set")
         else:
-            if not isinstance(self.__archive__, null_archive):
-                self.__swap__, self.__archive__ = self.__archive__, self.__swap__
+            if not isinstance(self.archive, null_archive):
+                self.__swap__, self.archive = self.archive, self.__swap__
     def sync(self, clear=False):
         """synchronize cache and archive contents
 
@@ -209,13 +209,15 @@ class cache(dict):
     def __get_archive(self):
        #if not isinstance(self.__archive__, null_archive):
        #    return
+        if not isinstance(self.__archive__, archive):
+            self.__archive__ = null_archive()
         return self.__archive__
     def __get_class(self):
        import klepto.archives as archives
-       return getattr(archives, self.__archive__.__class__.__name__)
+       return getattr(archives, self.archive.__class__.__name__)
     def __archive(self, archive):
         if not isinstance(self.__swap__, null_archive):
-            self.__swap__, self.__archive__ = self.__archive__, self.__swap__
+            self.__swap__, self.__archive__ = self.archive, self.__swap__
         self.__archive__ = archive
     # interface
     archive = property(__get_archive, __archive)
