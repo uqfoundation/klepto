@@ -248,6 +248,13 @@ class dict_archive(archive):
         adict = dict_archive(__magic_key_0192837465__=name)
         adict.update(self.__asdict__())
         return adict
+    def __drop__(self):
+        """drop the associated database
+
+      EXPERIMENTAL: This method is intended to remove artifacts external to
+      the instance. For a dict_archive there are none, so just call clear.
+        """
+        self.clear()
     # interface
     pass
 
@@ -282,6 +289,13 @@ class null_archive(archive):
         if name is None:
             name = self.__state__['id']
         return null_archive(__magic_key_0192837465__=name)
+    def __drop__(self):
+        """drop the associated database
+
+      EXPERIMENTAL: This method is intended to remove artifacts external to
+      the instance. For a null_archive there are none, so just call clear.
+        """
+        self.clear()
     # interface
     pass
 
@@ -399,6 +413,19 @@ class dir_archive(archive):
         adict = dir_archive(dirname=name, **self.state)
        #adict.update(self.__asdict__())
         return adict
+    def __drop__(self):
+        """drop the associated database
+
+      EXPERIMENTAL: Deleting the directory may not work due to permission
+      issues. Caller may need to be connected as a superuser and database
+      owner.
+        """
+        self.clear()
+        import os
+        import shutil
+        if os.path.exists(self.__state__['id']):
+            shutil.rmtree(self.__state__['id'])
+        return
     def fromkeys(self, *args): #XXX: build a dict (not an archive)?
         return dict.fromkeys(*args)
     fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -778,6 +805,17 @@ class file_archive(archive):
         adict = file_archive(filename=name, **self.state)
        #adict.update(self.__asdict__())
         return adict
+    def __drop__(self):
+        """drop the associated database
+
+      EXPERIMENTAL: Deleting the file may not work due to permission issues.
+      Caller may need to be connected as a superuser and database owner.
+        """
+        self.clear()
+        import os
+        if os.path.exists(self.__state__['id']):
+            os.remove(self.__state__['id'])
+        return
     def fromkeys(self, *args): #XXX: build a dict (not an archive)?
         return dict.fromkeys(*args)
     fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -1875,6 +1913,17 @@ if hdf:
           adict = hdf_archive(filename=name, **self.state)
          #adict.update(self.__asdict__())
           return adict
+      def __drop__(self):
+          """drop the associated database
+
+      EXPERIMENTAL: Deleting the file may not work due to permission issues.
+      Caller may need to be connected as a superuser and database owner.
+          """
+          self.clear()
+          import os
+          if os.path.exists(self.__state__['id']):
+              os.remove(self.__state__['id'])
+          return
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
           return dict.fromkeys(*args)
       fromkeys.__doc__ = dict.fromkeys.__doc__
@@ -2062,6 +2111,19 @@ if hdf:
           adict = hdfdir_archive(dirname=name, **self.state)
          #adict.update(self.__asdict__())
           return adict
+      def __drop__(self):
+          """drop the associated database
+
+      EXPERIMENTAL: Deleting the directory may not work due to permission
+      issues. Caller may need to be connected as a superuser and database
+      owner.
+          """
+          self.clear()
+          import os
+          import shutil
+          if os.path.exists(self.__state__['id']):
+              shutil.rmtree(self.__state__['id'])
+          return
       def fromkeys(self, *args): #XXX: build a dict (not an archive)?
           return dict.fromkeys(*args)
       fromkeys.__doc__ = dict.fromkeys.__doc__
