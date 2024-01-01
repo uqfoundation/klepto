@@ -2,7 +2,7 @@
 #
 # Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
 # Copyright (c) 2013-2016 California Institute of Technology.
-# Copyright (c) 2016-2023 The Uncertainty Quantification Foundation.
+# Copyright (c) 2016-2024 The Uncertainty Quantification Foundation.
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 """
@@ -27,6 +27,34 @@ NOSENTINEL = _NoSentinel()
 
 from copy import copy
 from klepto.crypto import hash, string, pickle
+
+def _stub_decoder(keymap=None):
+    "generate a keymap decoder from information in the keymap stub"
+    #FIXME: need to implement generalized inverse of keymap
+    #HACK: only works in certain special cases
+    if isinstance(keymap, (str, (u'').__class__)):
+        from klepto.crypto import algorithms, encodings, serializers
+        if keymap in serializers(): #FIXME: ignores all config options
+            import importlib
+            inv = lambda k: importlib.import_module(keymap).loads(k)
+        elif keymap in algorithms() or encodings(): #FIXME always assumes repr
+            inv = lambda k: eval(k)
+        else: #FIXME: give up, ignore keymap
+            inv = lambda k: k
+        return inv
+    kind = getattr(keymap, '__stub__', '')
+    if kind in ('encoding', 'algorithm'): #FIXME always assumes repr
+        inv = lambda k: eval(k)
+    elif kind in ('serializer', ): #FIXME: ignores all config options
+        if keymap.__type__ is None:
+            inv = lambda k: eval(k)
+        else:
+            import importlib
+            inv = lambda k: importlib.import_module(keymap.__type__).loads(k)
+    else: #FIXME: give up, ignore keymap
+        inv = lambda k: k
+    return inv
+
 
 def __chain__(x, y):
     "chain two keymaps: calls 'x' then 'y' on object to produce y(x(object))"

@@ -2,7 +2,7 @@
 #
 # Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
 # Copyright (c) 2013-2016 California Institute of Technology.
-# Copyright (c) 2016-2023 The Uncertainty Quantification Foundation.
+# Copyright (c) 2016-2024 The Uncertainty Quantification Foundation.
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 """
@@ -53,7 +53,7 @@ TEMP = ".I_"    # indicates 'temporary' file
 #DEAD = "D_"    # indicates 'deleted' key
 
 
-def _to_frame(archive):
+def _to_frame(archive):#, keymap=None):
     '''convert a klepto archive to a pandas DataFrame'''
     if not pandas:
         raise ValueError('install pandas for dataframe support')
@@ -73,14 +73,27 @@ def _to_frame(archive):
    #df.sort_index(axis=1, ascending=False, inplace=True)
     df.columns.name = d.archive.__class__.__name__#.rsplit('_archive')[0]
     df.index.name = repr(d.archive.state)
+    '''
+    if len(df) and keymap is not None:
+        #FIXME: need a generalized inverse of keymap
+        #HACK: only works in certain special cases
+        from klepto.keymaps import _stub_decoder
+        #if isinstance(df.index[0], bytes): keymap = 'pickle'
+        #elif isinstance(df.index[0], (str, (u'').__class__)): keymap = 'repr'
+        #else: keymap = None
+        inv = _stub_decoder(keymap)
+        df.index = df.index.map(inv)#lambda k: list(inv(k))) #FIXME: correct?
+        #HACK end
+    '''
     return df
 
 
-def _from_frame(dataframe):
+def _from_frame(dataframe):#, keymap=None):
     '''convert a (formatted) pandas dataframe to a klepto archive'''
     if not pandas:
         raise ValueError('install pandas for dataframe support')
-    df = dataframe
+    #if keymap is None: keymap = lambda x:x #XXX: or keymap()?
+    df = dataframe #XXX: apply keymap here?
     d = df.to_dict()
     # is cached if has more than one column, one of which is named 'cache'
     cached = True if len(df.columns) > 1 else False
@@ -94,9 +107,9 @@ def _from_frame(dataframe):
         index = {}
     # should have at least one column; if so, get the name of the column
     name = df.columns[0] if len(df.columns) else None
-    # get the name of the  column -- this will be our cached data
+    # get the name of the column -- this will be our cached data
     store = df.columns[1] if cached else cache
-    # get the data from the first column
+    # get the data from the first column #XXX: apply keymap here?
     data = {} if name is None else dict((k,v) for (k,v) in d[name].items() if repr(v) not in ['nan','NaN'])
     # get the archive type, defaulting to dict_archive
     col = df.columns.name
@@ -108,7 +121,7 @@ def _from_frame(dataframe):
     d_ = getattr(archives, col, archives.dict_archive)
     # get the archive instance
     d_ = d_(name, data, cached, **index)
-    # if cached, add the cache data
+    # if cached, add the cache data #XXX: apply keymap here?
     if cached: d_.archive.update((k,v) for (k,v) in d.get(store,{}).items() if repr(v) not in ['nan','NaN'])
     return d_
 
