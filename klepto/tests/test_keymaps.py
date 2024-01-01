@@ -2,7 +2,7 @@
 #
 # Author: Mike McKerns (mmckerns @caltech and @uqfoundation)
 # Copyright (c) 2013-2016 California Institute of Technology.
-# Copyright (c) 2016-2023 The Uncertainty Quantification Foundation.
+# Copyright (c) 2016-2024 The Uncertainty Quantification Foundation.
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
@@ -53,9 +53,23 @@ def test_picklemap():
     encode = picklemap(typed=True, flat=False, serializer='dill')
     assert loads(encode(*args, **kwds)) == loads(dumps( (args, kwds, (type(1), type(2)), (type(3), type(4))) ))
 
+def test_stub_decode():
+    key = [1,2,3,4,5]
+    from klepto.keymaps import _stub_decoder
+    k = picklemap(serializer='pickle')
+    assert _stub_decoder(k)(k(key))[0] == key
+    assert _stub_decoder('pickle')(k(key))[0] == key
+    k = picklemap()
+    assert _stub_decoder(k)(k(key))[0] == key
+    assert _stub_decoder('repr')(k(key))[0] == key
+    k = keymap()
+    assert _stub_decoder(k)(k(key))[0] == key
+    assert _stub_decoder(None)(k(key))[0] == key
+
 
 if __name__ == '__main__':
     test_keymap()
     test_hashmap()
     test_stringmap()
     test_picklemap()
+    #test_stub_decode()
