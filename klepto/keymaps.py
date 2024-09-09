@@ -105,9 +105,9 @@ class keymap(object):
 
         # some rare kwds that allow keymap customization
         try:
-            self._fasttypes = (int,str,bytes,frozenset,type(None))
+            self._fasttypes = (int,str,bytes,frozenset,type(None)) # int64?
         except NameError:
-            self._fasttypes = (int,str,frozenset,type(None))
+            self._fasttypes = (int,str,frozenset,type(None)) # int64?
         self._fasttypes = kwds.pop('fasttypes', set(self._fasttypes))
         self._sorted = kwds.pop('sorted', sorted)
         self._tuple = kwds.pop('tuple', tuple)
