@@ -421,9 +421,10 @@ def _keygen(func, ignored, *args, **kwds):
         user_kwds = kwds.copy()
 
     # decompose the list of things to ignore to names and indicies
-    if isinstance(ignored, (str,int)): ignored = [ignored]
-    index_to_ignore = set(i for i in ignored if isinstance(i,int))
-    names_to_ignore = set(i for i in ignored if isinstance(i,str))
+    from numbers import Integral
+    if isinstance(ignored, (str, Integral)): ignored = [ignored]
+    index_to_ignore = set(i for i in ignored if isinstance(i, Integral))
+    names_to_ignore = set(i for i in ignored if isinstance(i, str))
 
     # if ignore self, remove self instead of NULL it
     if inspect.isfunction(func):
