@@ -86,8 +86,8 @@ class BinaryDistribution(Distribution):
 
 # define dependencies
 sysversion = sys.version_info[:3]
-dill_version = 'dill>=0.3.8'
-pox_version = 'pox>=0.3.4'
+dill_version = 'dill>=0.3.9'
+pox_version = 'pox>=0.3.5'
 jsonpickle_version = 'jsonpickle>=0.9.6'
 cloudpickle_version = 'cloudpickle>=0.5.2'
 sqlalchemy_version = 'sqlalchemy>=1.4.0'
