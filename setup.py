@@ -128,9 +128,3 @@ except ImportError:
     print ("    %s (optional)" % h5py_version)
     print ("    %s (optional)" % pandas_version)
     print ("***********************************************************\n")
-
-
-if __name__=='__main__':
-    pass
-
-# end of file

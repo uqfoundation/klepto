@@ -16,7 +16,9 @@ hp = p + h
 def test_chaining():
     assert p(1) == pickle(1, serializer='dill')
     assert h(1) == 'c4ca4238a0b923820dcc509a6f75849b'
-    if sys.version_info[1] < 8:
+    if sys.hexversion > 0x30e00a0: #XXX: 3.14.0a1 different than prior
+        assert hp(1) == 'c7483051dc5df58359faa78d4593981c'
+    elif sys.version_info[1] < 8:
         assert hp(1) == 'a2ed37e4f2f0ccf8be170d8c31c711b2'
     else: #XXX: because 3.x returns b'', 2.x returns '', and 3.8 is weird
         assert hp(1) == 'bfac8a39dc4b0d616a0805a453698556'
