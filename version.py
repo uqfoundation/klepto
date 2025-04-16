@@ -5,7 +5,7 @@
 # License: 3-clause BSD.  The full license text is available at:
 #  - https://github.com/uqfoundation/klepto/blob/master/LICENSE
 
-__version__ = '0.2.7.dev0'
+__version__ = '0.2.7'#.dev0'
 __author__ = 'Mike McKerns'
 __contact__ = 'mmckerns@uqfoundation.org'
 
