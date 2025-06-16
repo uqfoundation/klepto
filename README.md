@@ -78,7 +78,7 @@ Development Version
 [![Support](https://img.shields.io/badge/support-the%20UQ%20Foundation-purple.svg?style=flat&colorA=grey&colorB=purple)](http://www.uqfoundation.org/pages/donate.html)
 [![Documentation Status](https://readthedocs.org/projects/klepto/badge/?version=latest)](https://klepto.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://app.travis-ci.com/uqfoundation/klepto.svg?label=build&logo=travis&branch=master)](https://app.travis-ci.com/github/uqfoundation/klepto)
-[![codecov](https://codecov.io/gh/uqfoundation/klepto/branch/master/graph/badge.svg)](https://codecov.io/gh/uqfoundation/klepto)
+[![codecov](https://codecov.io/gh/uqfoundation/klepto/branch/master/graph/badge.svg?token=bk93SHgoDg)](https://codecov.io/gh/uqfoundation/klepto)
 -------------------
 You can get the latest development version with all the shiny new features at:
     https://github.com/uqfoundation
