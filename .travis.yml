@@ -1,19 +1,22 @@
-dist: jammy
+dist: noble
 language: python
 
 matrix:
     include:
         - python: '3.9'
+          dist: focal
+          env:
+
+        - python: '3.10'
+          dist: jammy
           env:
             - COVERAGE="true"
             - PANDAS="true"
             - SQLALCHEMY="true"
             - H5PY="true"
 
-        - python: '3.10'
-          env:
-
         - python: '3.11'
+          dist: jammy
           env:
 
         - python: '3.12'
@@ -22,11 +25,11 @@ matrix:
         - python: '3.13'
           env:
 
-        - python: '3.14-dev'
+        - python: '3.14'
           env:
             - DILL="master"
 
-        - python: '3.15-dev'
+        - python: '3.15t-dev'
           env:
             - DILL="master"
 
@@ -40,8 +43,7 @@ matrix:
           env:
 
     allow_failures:
-        - python: '3.15-dev' # prerelease; CI missing
-        - python: 'pypy3.11-7.3.20' # CI missing
+        - python: '3.15t-dev' # prerelease
     fast_finish: true
 
 cache:
