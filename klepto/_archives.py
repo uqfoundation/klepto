@@ -103,7 +103,7 @@ def _from_frame(dataframe):#, keymap=None):
         index = eval(df.index.name)
         if type(index) is not dict:
             raise TypeError
-    except:
+    except Exception:
         index = {}
     # should have at least one column; if so, get the name of the column
     name = df.columns[0] if len(df.columns) else None
@@ -388,7 +388,7 @@ class dir_archive(archive):
            #if s != v: return False
            #elif s == []: return True
            #return self[s] == y[v]
-        except: return NotImplemented
+        except Exception: return NotImplemented
     __eq__.__doc__ = dict.__eq__.__doc__
     def __ne__(self, y):
         y = self.__eq__(y)
@@ -398,7 +398,7 @@ class dir_archive(archive):
         try:
             memo = {key: None}
             self._rmdir(key)
-        except:
+        except Exception:
             memo = {}
         memo.__delitem__(key)
         return
@@ -445,7 +445,7 @@ class dir_archive(archive):
     def get(self, key, value=None):
         try:
             return self.__getitem__(key)
-        except:
+        except Exception:
             return value
     get.__doc__ = dict.get.__doc__
     def __contains__(self, key):
@@ -478,7 +478,7 @@ class dir_archive(archive):
         try:
             memo = {key: self.__getitem__(key)}
             self._rmdir(key)
-        except:
+        except Exception:
             memo = {}
         res = memo.pop(key, *value)
         return res
@@ -509,7 +509,7 @@ class dir_archive(archive):
         "generate suitable filename for a given key"
         # special handling for pickles; enable non-strings (however 1=='1')
         try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
-        except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
+        except Exception: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
         key = hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
         return key.replace('-','_')
        ##XXX: below probably fails on windows, and could be huge... use 'md5'
@@ -577,7 +577,7 @@ class dir_archive(archive):
                         pik,mode = dill,'rb'
                     with open(_file, mode) as f:
                         memo = pik.load(f)
-            except: #XXX: should only catch the appropriate exceptions
+            except Exception: #XXX: should only catch the appropriate exceptions
                 memo = None
                 raise KeyError(key)
                #raise OSError("error reading directory for '%s'" % key)
@@ -593,7 +593,7 @@ class dir_archive(archive):
                 exec(string, globals()) #FIXME: unsafe, potential name conflict
                 memo = globals().get(name)# None) #XXX: error if not found?
                 globals().pop(name, None)
-            except: #XXX: should only catch the appropriate exceptions
+            except Exception: #XXX: should only catch the appropriate exceptions
                 raise KeyError(key)
                #raise OSError("error reading directory for '%s'" % key)
             finally:
@@ -724,7 +724,7 @@ class file_archive(archive):
             try:
                 with open(filename, mode) as f:
                     memo = pik.load(f)
-            except:
+            except Exception:
                 memo = {}
                #raise OSError("error reading file archive %s" % filename)
         else:
@@ -741,7 +741,7 @@ class file_archive(archive):
                 exec(string, globals()) #FIXME: unsafe, potential name conflict
                 memo = globals().get(name, {}) #XXX: error if not found ?
                 globals().pop(name, None)
-            except: #XXX: should only catch appropriate exceptions
+            except Exception: #XXX: should only catch appropriate exceptions
                 memo = {}
                #raise OSError("error reading file archive %s" % filename)
             finally:
@@ -770,7 +770,7 @@ class file_archive(archive):
         # move the results to the proper place
         try:
             os.remove(filename)
-        except: pass
+        except Exception: pass
         try:
             os.renames(_filename, filename)
         except OSError:
@@ -781,7 +781,7 @@ class file_archive(archive):
         try:
             if y.__module__ != self.__module__: return NotImplemented
             return self.__asdict__() == y.__asdict__() #XXX: faster than get?
-        except: return NotImplemented
+        except Exception: return NotImplemented
     __eq__.__doc__ = dict.__eq__.__doc__
     def __ne__(self, y):
         y = self.__eq__(y)
@@ -1031,7 +1031,7 @@ if sql:
           try:
               if y.__module__ != self.__module__: return NotImplemented
               return self.__asdict__() == y.__asdict__() #XXX: faster than get?
-          except: return NotImplemented
+          except Exception: return NotImplemented
       __eq__.__doc__ = dict.__eq__.__doc__
       def __ne__(self, y):
           y = self.__eq__(y)
@@ -1073,7 +1073,7 @@ if sql:
          #self._metadata.drop_all()
           for key in self._keys():
               try: self.__delitem__(key) #XXX: optionally delete data ?
-              except: pass #XXX: don't catch ?
+              except Exception: pass #XXX: don't catch ?
           return
       clear.__doc__ = dict.clear.__doc__
       def copy(self, name=None): #XXX: always None? or allow other settings?
@@ -1121,7 +1121,7 @@ if sql:
           try:
               memo = {key: self.__getitem__(key)}
               self.__delitem__(key)
-          except:
+          except Exception:
               memo = {}
           res = memo.pop(key, *value)
           return res
@@ -1377,7 +1377,7 @@ if sql:
              #if s != v: return False
              #elif s == []: return True
              #return self[s] == y[v]
-          except: return NotImplemented
+          except Exception: return NotImplemented
       __eq__.__doc__ = dict.__eq__.__doc__
       def __ne__(self, y):
           y = self.__eq__(y)
@@ -1615,7 +1615,7 @@ else:
              #if s != v: return False
              #elif s == []: return True
              #return self[s] == y[v]
-          except: return NotImplemented
+          except Exception: return NotImplemented
       __eq__.__doc__ = dict.__eq__.__doc__
       def __ne__(self, y):
           y = self.__eq__(y)
@@ -1822,7 +1822,7 @@ if hdf:
           except TypeError: # we have an unhashable type
               memo = {}
               'unhashable type'
-          except: #XXX: should only catch appropriate exceptions
+          except Exception: #XXX: should only catch appropriate exceptions
               memo = {}
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -1851,7 +1851,7 @@ if hdf:
           # move the results to the proper place
           try:
               os.remove(filename)
-          except: pass
+          except Exception: pass
           try:
               os.renames(_filename, filename)
           except OSError:
@@ -1862,7 +1862,7 @@ if hdf:
           try:
               if y.__module__ != self.__module__: return NotImplemented
               return self.__asdict__() == y.__asdict__() #XXX: faster than get?
-          except: return NotImplemented
+          except Exception: return NotImplemented
       __eq__.__doc__ = dict.__eq__.__doc__
       def __ne__(self, y):
           y = self.__eq__(y)
@@ -1874,7 +1874,7 @@ if hdf:
           try:
               f = hdf.File(filename, 'a')
               self._attrs(f).__delitem__(self._dumpkey(key))
-          except: #XXX: should only catch appropriate exceptions
+          except Exception: #XXX: should only catch appropriate exceptions
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -1887,7 +1887,7 @@ if hdf:
           try:
               f = hdf.File(filename, 'r')
               val = self._loadval(self._attrs(f)[self._dumpkey(key)])
-          except: #XXX: should only catch appropriate exceptions
+          except Exception: #XXX: should only catch appropriate exceptions
               raise KeyError(key)
              #raise OSError("error reading file archive %s" % filename)
           finally:
@@ -2027,7 +2027,7 @@ if hdf:
           try:
               f = hdf.File(filename, 'r')
               _len = len(self._attrs(f))
-          except: #XXX: should only catch appropriate exceptions
+          except Exception: #XXX: should only catch appropriate exceptions
               raise OSError("error reading file archive %s" % filename)
           finally:
               if f is not None: f.close()
@@ -2086,7 +2086,7 @@ if hdf:
           try:
               if y.__module__ != self.__module__: return NotImplemented
               return self.__asdict__() == y.__asdict__() #XXX: faster than get?
-          except: return NotImplemented
+          except Exception: return NotImplemented
       __eq__.__doc__ = dict.__eq__.__doc__
       def __ne__(self, y):
           y = self.__eq__(y)
@@ -2096,7 +2096,7 @@ if hdf:
           try:
               memo = {key: None}
               self._rmdir(key)
-          except:
+          except Exception:
               memo = {}
           memo.__delitem__(key)
           return
@@ -2143,7 +2143,7 @@ if hdf:
       def get(self, key, value=None):
           try:
               return self.__getitem__(key)
-          except:
+          except Exception:
               return value
       get.__doc__ = dict.get.__doc__
       def __contains__(self, key):
@@ -2176,7 +2176,7 @@ if hdf:
           try:
               memo = {key: self.__getitem__(key)}
               self._rmdir(key)
-          except:
+          except Exception:
               memo = {}
           res = memo.pop(key, *value)
           return res
@@ -2206,7 +2206,7 @@ if hdf:
           "generate suitable filename for a given key"
           # special handling for pickles; enable non-strings (however 1=='1')
           try: ispickle = key.startswith(PROTO) and key.endswith(STOP)
-          except: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
+          except Exception: ispickle = False #FIXME: protocol 0,1 don't startwith(PROTO)
           key = hash(key, 'md5') if ispickle else str(key) #XXX: always hash?
           return key.replace('-','_')
           #XXX: special handling in ispickle for protocol=json?
@@ -2270,7 +2270,7 @@ if hdf:
               #XXX: alternately, could store {key:value} (i.e. use one file)?
               memo = tuple(hdf_archive(_file, **adict).__asdict__().values())[0]
              #memo = next(iter(hdf_archive(_file, **adict).values()))
-          except: #XXX: should only catch the appropriate exceptions
+          except Exception: #XXX: should only catch the appropriate exceptions
               memo = None
               #FIXME: not sure if _lookup should delete a key in all cases
               #FIXME: (maybe only delete key when it's new, but fails)
