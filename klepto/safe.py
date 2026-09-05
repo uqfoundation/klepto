@@ -125,7 +125,7 @@ class no_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -142,7 +142,7 @@ class no_cache(object):
                 result = user_function(*args, **kwds)
                 cache[key] = result
                 stats[MISS] += 1
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
 
@@ -316,7 +316,7 @@ class inf_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -337,7 +337,7 @@ class inf_cache(object):
                     result = user_function(*args, **kwds)
                     cache[key] = result
                     stats[MISS] += 1
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
             return result
@@ -523,7 +523,7 @@ class lfu_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -563,7 +563,7 @@ class lfu_cache(object):
                             try: del cache[k]
                             except KeyError: pass #FIXME: possible less purged
                             use_count.pop(k, None)
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
             return result
@@ -759,7 +759,7 @@ class lru_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -808,7 +808,7 @@ class lru_cache(object):
                         try: del cache[key]
                         except KeyError: pass #FIXME: possible none purged
                         refcount.pop(key, None)
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -1012,7 +1012,7 @@ class mru_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -1048,7 +1048,7 @@ class mru_cache(object):
                         if cache.archived(): cache.dump(k)
                         try: del cache[k]
                         except KeyError: pass #FIXME: possible none purged
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -1239,7 +1239,7 @@ class rr_cache(object):
                 _args, _kwds = rounded_args(*args, **kwds)
                 _args, _kwds = _keygen(user_function, ignore, *_args, **_kwds)
                 key = keymap(*_args, **_kwds)
-            except: #TypeError
+            except TypeError:  #TypeError
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
                 return result
@@ -1272,7 +1272,7 @@ class rr_cache(object):
                         if cache.archived(): cache.dump(key)
                         try: del cache[key]
                         except KeyError: pass #FIXME: possible none purged
-            except: #TypeError: # unhashable key
+            except TypeError:  #TypeError: # unhashable key
                 result = user_function(*args, **kwds)
                 stats[MISS] += 1
             return result
